@@ -1,0 +1,13 @@
+#
+# define code ownership for this repository
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# It's possible to add groups as well but they need to be added to the
+# repository and assigned a permission level first. Otherwise they will
+# be underlined with red squiggly lines when looking at the file in the
+# WebGUI and it won't work.
+# https://github.com/{{ repository_owner }}/{{repository_name}}/settings/access
+#
+
+# define default ownership
+* @feeph
