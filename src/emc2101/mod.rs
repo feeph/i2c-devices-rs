@@ -24,13 +24,13 @@ pub struct HardwareDetails {
 /// ```rust
 /// // <initialize an I²C bus object>
 ///
-/// let hw_details = i2c_devices::emc2101::get_hardware_details(&mut i2c_bus0);
+/// let hwd = i2c_devices::emc2101::get_hardware_details(&mut i2c_bus0);
 /// // concise, e.g. "SMSC EMC2101 (rev: 1)"
-/// info!("{} {} (rev: {})", hw_details.manufacturer, hw_details.product, hw_details.prv);
+/// info!("{0} {1} (rev: {2})", hwd.manufacturer, hwd.product, hwd.prv);
 /// // detailed
-/// info!("Manufacturer: {} ({:#04X})", hw_details.manufacturer, hw_details.mid);
-/// info!("Product:      {} ({:#04X})", hw_details.product, hw_details.pid);
-/// info!("Revision:     {:#04X}", hw_details.revision);
+/// info!("Manufacturer: {0} ({1:#04X})", hwd.manufacturer, hwd.mid);
+/// info!("Product:      {0} ({1:#04X})", hwd.product, hwd.pid);
+/// info!("Revision:     {0:#04X}", hwd.revision);
 /// ```
 pub fn get_hardware_details<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> HardwareDetails
 where
