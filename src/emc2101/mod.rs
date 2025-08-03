@@ -4,7 +4,7 @@
 
 pub mod hw;
 
-static UNKNOWN: &'static str = "<unknown>";
+static UNKNOWN: &str = "<unknown>";
 
 // ------------------------------------------------------------------------
 // hardware details
@@ -43,7 +43,14 @@ where
     let man = identify_manufacturer(mid);
     let prd = identify_product(pid);
 
-    return HardwareDetails{ mid: mid, manufacturer: man, pid: pid, product: prd, revision: rev };
+    // implicit return
+    HardwareDetails {
+        mid,
+        manufacturer: man,
+        pid,
+        product: prd,
+        revision: rev,
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -55,18 +62,18 @@ where
 /// this is not the entire configuration, there are additional registers
 /// which configure different aspects of this chip, e.g. fan configuration
 /// register (0x4A)
-/// 
+///
 /// for an exhaustive description refer to the data sheet (section 6.5)
 pub struct ConfigRegister {
     // the comment describes what happens if the value is set to True
-    pub mask:        bool,  // disable ALERT/TACH when in interrupt mode
-    pub standby:     bool,  // enable low power standby mode
-    pub fan_standby: bool,  // disable fan output while in standby
-    pub dac:         bool,  // enable DAC output on FAN pin
-    pub dis_to:      bool,  // disable I²C bus timeout
-    pub alt_tach:    bool,  // configure pin six as tacho input
-    pub tcrit_ovrd:  bool,  // unlock tcrit limit and allow one-time write
-    pub queue:       bool,  // alert after 3 critical temperature readings
+    pub mask: bool,        // disable ALERT/TACH when in interrupt mode
+    pub standby: bool,     // enable low power standby mode
+    pub fan_standby: bool, // disable fan output while in standby
+    pub dac: bool,         // enable DAC output on FAN pin
+    pub dis_to: bool,      // disable I²C bus timeout
+    pub alt_tach: bool,    // configure pin six as tacho input
+    pub tcrit_ovrd: bool,  // unlock tcrit limit and allow one-time write
+    pub queue: bool,       // alert after 3 critical temperature readings
 }
 
 pub fn get_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> ConfigRegister
@@ -75,7 +82,8 @@ where
 {
     let cfg = hw::get_config_register(i2c_bus);
 
-    return ConfigRegister{
+    // implicit return
+    ConfigRegister {
         mask: (cfg & 0b1000_0000) != 0,
         standby: (cfg & 0b0100_0000) != 0,
         fan_standby: (cfg & 0b0010_0000) != 0,
@@ -84,7 +92,7 @@ where
         alt_tach: (cfg & 0b0000_0100) != 0,
         tcrit_ovrd: (cfg & 0b0000_0010) != 0,
         queue: (cfg & 0b0000_0001) != 0,
-    };
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -94,9 +102,10 @@ where
 fn identify_manufacturer(mid: u8) -> &'static str {
     let smsc: &'static str = "SMSC";
 
+    // implicit return
     match mid {
-        0x5D => return smsc,
-        _ => return UNKNOWN,
+        0x5D => smsc,
+        _ => UNKNOWN,
     }
 }
 
@@ -104,9 +113,10 @@ fn identify_product(pid: u8) -> &'static str {
     let emc2101: &'static str = "EMC2101";
     let emc2101r: &'static str = "EMC2101-R";
 
+    // implicit return
     match pid {
-        0x16 => return emc2101,
-        0x28 => return emc2101r,
-        _ => return UNKNOWN,
+        0x16 => emc2101,
+        0x28 => emc2101r,
+        _ => UNKNOWN,
     }
 }

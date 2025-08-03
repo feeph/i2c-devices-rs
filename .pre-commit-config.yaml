@@ -46,6 +46,17 @@ repos:
     rev: v0.18.1
     hooks:
     - id: markdownlint-cli2
+  # https://github.com/doublify/pre-commit-rust
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        name: cargo fmt
+        args: [ "--verbose", "--" ]
+      - id: cargo-check
+        name: cargo check
+      - id: clippy
+        name: cargo clippy
   # https://gitleaks.io/
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.27.2  # Specify the desired version of Gitleaks

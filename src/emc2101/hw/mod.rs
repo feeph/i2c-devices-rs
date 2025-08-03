@@ -23,7 +23,8 @@ pub fn get_manufacturer_id<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) 
 where
     Dm: esp_hal::DriverMode,
 {
-    return read_register_as_u8(i2c_bus, DR::MID as u8);
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Mid as u8)
 }
 
 /// read the product ID
@@ -35,7 +36,8 @@ pub fn get_product_id<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
 where
     Dm: esp_hal::DriverMode,
 {
-    return read_register_as_u8(i2c_bus, DR::PID as u8);
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Pid as u8)
 }
 
 /// read the product's revision
@@ -46,7 +48,8 @@ pub fn get_product_revision<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
 where
     Dm: esp_hal::DriverMode,
 {
-    return read_register_as_u8(i2c_bus, DR::PRV as u8);
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Rev as u8)
 }
 
 // ------------------------------------------------------------------------
@@ -60,8 +63,13 @@ pub fn get_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) 
 where
     Dm: esp_hal::DriverMode,
 {
-    return read_register_as_u8(i2c_bus, DR::CFG as u8);
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Cfg as u8)
 }
+
+//
+// TODO convert code from Python to Rust
+//
 
 //     def set_config_register(self, config: ConfigRegister):
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
@@ -478,7 +486,6 @@ where
 //             status_register = bh.read_register(0x03)
 //         return bool(status_register & 0b0000_0100)
 
-
 // def _convert_rpm2tach(rpm: int) -> tuple[int, int]:
 //     # due to the way the conversion works the RPM can never
 //     # be less than 82
@@ -489,7 +496,6 @@ where
 //     msb = (tach & 0xFF00) >> 8
 //     lsb = tach & 0x00FF
 //     return (msb, lsb)
-
 
 // def _convert_tach2rpm(msb: int, lsb: int) -> int | None:
 //     """
@@ -505,14 +511,11 @@ where
 //     else:
 //         return None
 
-
 // def _get_config_register(bh: BurstHandle) -> ConfigRegister:
 //     return parse_config_register(bh.read_register(0x03))
 
-
 // def _set_config_register(bh: BurstHandle, config: ConfigRegister):
 //     bh.write_register(0x03, config.as_int())
-
 
 // ------------------------------------------------------------------------
 
@@ -522,5 +525,7 @@ where
 {
     let mut rb = [0u8; 1];
     let _ = i2c_bus.write_read(DEVICE_ADDRESS, &[dr], &mut rb);
-    return rb[0];
+
+    // implicit return
+    rb[0]
 }
