@@ -1,0 +1,8 @@
+#![no_std]
+
+pub mod raw;
+
+// The master communicates with slave devices using I2C transactions.
+// A transaction can be a write, a read, or a combination of both.
+// The I2c driver provides methods for performing these transactions.
+// -- https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
