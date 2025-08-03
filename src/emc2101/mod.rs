@@ -4,6 +4,9 @@
 
 pub mod hw;
 
+#[allow(unused_imports)]
+use log::{debug, error, info, warn};
+
 static UNKNOWN: &str = "<unknown>";
 
 // ------------------------------------------------------------------------
@@ -95,9 +98,106 @@ where
     }
 }
 
+//     # ---------------------------------------------------------------------
+//     # temperature measurements - internal temperature sensor
+//     # ---------------------------------------------------------------------
+
+/// read the temperature measured by the internal sensor (in °C)
+/// - the data sheet guarantees a precision of ±2°C
+/// - expected range: 0º.00C to 85.00ºC
+pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    hw::get_internal_temperature(i2c_bus) as f32
+}
+
+/// read the "high temperature" alerting limit
+/// - expected range: 0.00ºC to 85.00ºC
+/// - default: 70.00°C
+pub fn get_internal_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    hw::get_internal_temperature_high_limit(i2c_bus) as f32
+}
+
+/// read the temperature measured by the external sensor (in °C)
+/// - the data sheet guarantees a precision of ±1°C
+/// - expected range: 0.00ºC to 85.00ºC
+pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let bytes = hw::get_external_temperature(i2c_bus);
+    debug!("get_external_temperature():");
+    debug!("  MSB: {0:#04X}", bytes[1]);
+    debug!("  LSB: {0:#010b}", bytes[1]);
+
+    // TODO validate result
+
+    // implicit return
+    convert_bytes2temperature(bytes)
+}
+
+/// read the "low temperature" alerting limit
+/// - expected range: 0.00ºC to 85.00ºC
+/// - default: 0.00°C
+pub fn get_external_temperature_low_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let bytes = hw::get_external_temperature_low_limit(i2c_bus);
+
+    // implicit return
+    convert_bytes2temperature(bytes)
+}
+
+/// read the "high temperature" alerting limit
+/// - expected range: 0.00ºC to 85.00ºC
+/// - default: 70.00°C
+pub fn get_external_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let bytes = hw::get_external_temperature_high_limit(i2c_bus);
+
+    // implicit return
+    convert_bytes2temperature(bytes)
+}
+
 // ------------------------------------------------------------------------
 // helper functions
 // ------------------------------------------------------------------------
+
+// convert the provided temperature from internal value to float
+// e.g.: 0x0C + 0xE0 -> 13.9 (13 + 0.50 + 0.25 + 0.15)
+fn convert_bytes2temperature(bytes: [u8; 2]) -> f32 {
+    let msb = bytes[0];
+    let lsb = bytes[1];
+
+    let mut temp = msb as f32;
+    if (lsb & 0b1000_0000) != 0 {
+        temp += 0.50;
+    }
+    if (lsb & 0b0100_0000) != 0 {
+        temp += 0.25;
+    }
+    if (lsb & 0b0010_0000) != 0 {
+        temp += 0.15;
+    }
+
+    // implicit return
+    temp
+}
 
 fn identify_manufacturer(mid: u8) -> &'static str {
     let smsc: &'static str = "SMSC";

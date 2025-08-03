@@ -281,7 +281,8 @@ where
 //     # temperature measurements - internal temperature sensor
 //     # ---------------------------------------------------------------------
 
-/// read the temperature measured by the internal sensor
+/// read the temperature measured by the internal sensor (in °C)
+//  - the data sheet guarantees a precision of ±2°C
 ///
 /// expected range: 0x00 (0ºC) to 0x55 (85ºC)
 pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -292,27 +293,27 @@ where
     read_register_as_u8(i2c_bus, DR::Its as u8)
 }
 
-//     def get_its_temperature(self) -> float:
-//         """
-//         get internal sensor temperature in °C
-
-//         the datasheet guarantees a precision of ±2°C
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             LH.error("get_its_temperature(): %0.1f", bh.read_register(0x00))
-//             return float(bh.read_register(0x00))
-
-//     def get_its_temperature_limit(self) -> float:
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             return float(bh.read_register(0x05))
+/// read the "high temperature" alerting limit
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// default: [0x46, 0x00] (70.0°C)
+pub fn get_internal_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::ItsHi as u8)
+}
 
 //     def set_its_temperature_limit(self, value: float):
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             bh.write_register(0x05, int(value))
 
-//     # ---------------------------------------------------------------------
-//     # temperature measurements - external temperature sensor
-//     # ---------------------------------------------------------------------
+// ------------------------------------------------------------------------
+// temperature measurements - external temperature sensor
+// ------------------------------------------------------------------------
 
 //     def configure_ets(self, ets_config: ExternalTemperatureSensorConfig) -> bool:
 //         """
@@ -358,28 +359,41 @@ where
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             return bh.read_register(0x01) != 0b0111_1111
 
-//     def get_ets_temperature(self) -> float:
-//         """
-//         get external sensor temperature in °C
+/// read the temperature measured by the external sensor
+//  - the data sheet guarantees a precision of ±1°C
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [u8; 2]
+where
+    Dm: esp_hal::DriverMode,
+{
+    let adr = [
+        DR::EtsMsb as u8, // high byte, must be read first!
+        DR::EtsLsb as u8, // low byte
+    ];
 
-//         the datasheet guarantees a precision of ±1°C
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             msb = bh.read_register(0x01)  # high byte, must be read first!
-//             lsb = bh.read_register(0x10)  # low byte
-//         if msb != 0b0111_1111:
-//             return convert_bytes2temperature(msb, lsb)
-//         else:
-//             return math.nan
+    // implicit return
+    read_multibyte_register_as_u8(i2c_bus, adr)
+}
 
-//     def get_ets_low_temperature_limit(self) -> float:
-//         """
-//         get upper/lower temperature alerting limit in °C
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             msb = bh.read_register(0x08)  # high byte, must be read first!
-//             lsb = bh.read_register(0x14)  # low byte
-//         return convert_bytes2temperature(msb, lsb)
+/// read the "low temperature" alerting limit
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// default: [0x00, 0x00] (0.0°C)
+pub fn get_external_temperature_low_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> [u8; 2]
+where
+    Dm: esp_hal::DriverMode,
+{
+    let adr = [
+        DR::EtsLoMsb as u8, // high byte, must be read first!
+        DR::EtsLoLsb as u8, // low byte
+    ];
+
+    // implicit return
+    read_multibyte_register_as_u8(i2c_bus, adr)
+}
 
 //     def set_ets_low_temperature_limit(self, value: float) -> float:
 //         """
@@ -405,6 +419,25 @@ where
 //             msb = bh.read_register(0x07)  # high byte, must be read first!
 //             lsb = bh.read_register(0x13)  # low byte
 //         return convert_bytes2temperature(msb, lsb)
+
+/// read the "high temperature" alerting limit
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// default: [0x46, 0x00] (70.0°C)
+pub fn get_external_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> [u8; 2]
+where
+    Dm: esp_hal::DriverMode,
+{
+    let adr = [
+        DR::EtsHiMsb as u8, // high byte, must be read first!
+        DR::EtsHiLsb as u8, // low byte
+    ];
+
+    // implicit return
+    read_multibyte_register_as_u8(i2c_bus, adr)
+}
 
 //     def set_ets_high_temperature_limit(self, value: float) -> float:
 //         """
@@ -535,8 +568,43 @@ where
     Dm: esp_hal::DriverMode,
 {
     let mut rb = [0u8; 1];
+    // TODO add error handling for read_register_as_u8()
     let _ = i2c_bus.write_read(DEVICE_ADDRESS, &[dr], &mut rb);
 
     // implicit return
     rb[0]
+}
+
+// The master communicates with slave devices using I2C transactions.
+// A transaction can be a write, a read, or a combination of both.
+// The I2c driver provides methods for performing these transactions.
+// -- https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
+
+// read two independent registers in the exact order provided
+//
+// returns the two values in exactly the same order
+fn read_multibyte_register_as_u8<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    dr: [u8; 2],
+) -> [u8; 2]
+where
+    Dm: esp_hal::DriverMode,
+{
+    let wb_msb = [dr[0]; 1];
+    let wb_lsb = [dr[1]; 1];
+    let rb = [0u8; 2];
+
+    // TODO add error handling for read_multibyte_register_as_u8()
+    let _ = i2c_bus.transaction(
+        DEVICE_ADDRESS,
+        &mut [
+            esp_hal::i2c::master::Operation::Write(&wb_msb),
+            esp_hal::i2c::master::Operation::Read(&mut [rb[0]]),
+            esp_hal::i2c::master::Operation::Write(&wb_lsb),
+            esp_hal::i2c::master::Operation::Read(&mut [rb[1]]),
+        ],
+    );
+
+    // implicit return
+    rb
 }
