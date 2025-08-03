@@ -281,6 +281,17 @@ where
 //     # temperature measurements - internal temperature sensor
 //     # ---------------------------------------------------------------------
 
+/// read the temperature measured by the internal sensor
+///
+/// expected range: 0x00 (0ºC) to 0x55 (85ºC)
+pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Its as u8)
+}
+
 //     def get_its_temperature(self) -> float:
 //         """
 //         get internal sensor temperature in °C
