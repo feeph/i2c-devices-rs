@@ -35,6 +35,7 @@ jobs:
           target=$(grep ^target .cargo/config.toml|sed -E 's/^target\s=\s"(.*)"$/\1/')
           rustup target add $target
       # the reference 'origin/HEAD' may be missing on GHA runner
+      # (will fail if you're not merging to the default branch)
       - name: ensure 'origin/HEAD' exists
         id: git-origin-head
         run: |
