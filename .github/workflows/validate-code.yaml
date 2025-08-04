@@ -1,0 +1,40 @@
+---
+#
+# If the committer has run the pre-commit hooks on their local machine and
+# fixed all identified issues then this check is expected to run perfectly
+# fine.
+#
+
+name: verify pull request
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    name: lint the code
+    runs-on: ubuntu-latest
+    steps:
+      # -------------------------------------------------------------------
+      # prepare
+      # -------------------------------------------------------------------
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+      - name: identify changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v46
+      # -------------------------------------------------------------------
+      # validate
+      # -------------------------------------------------------------------
+      # The GitHub Action 'pre-commit/action' uses '--all-files' and always
+      # check against all files in the repository, even if the pull request
+      # does not touch them. We don't want that. Review modified files only.
+      - name: re-run pre-commit hooks
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          UV_NO_PROGRESS: true
+        run: |
+          uv tool install pre-commit
+          pre-commit run --show-diff-on-failure --color=always --hook-stage pre-push --files $CHANGED_FILES
