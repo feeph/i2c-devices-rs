@@ -126,6 +126,26 @@ where
     hw::get_internal_temperature_high_limit(i2c_bus) as f32
 }
 
+/// set the "high temperature" alerting limit
+/// - expected range: 0.00ºC to 85.00ºC
+/// - decimal points are truncated (not rounded)
+pub fn set_internal_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    value: f32,
+) -> bool
+where
+    Dm: esp_hal::DriverMode,
+{
+    if (0.0..=85.0).contains(&value) {
+        // implicit return
+        hw::set_internal_temperature_high_limit(i2c_bus, value as u8)
+    } else {
+        warn!("Provided value for internal temperature limit must be in range 0.0°C <= x <= 85°C!");
+        // implicit return
+        false
+    }
+}
+
 /// read the temperature measured by the external sensor (in °C)
 /// - the data sheet guarantees a precision of ±1°C
 /// - expected range: 0.00ºC to 85.00ºC

@@ -1,6 +1,7 @@
 //
 // raw, low-level access (as implemented by hardware)
 //
+// TODO convert code from Python to Rust
 
 mod device_registers;
 
@@ -66,10 +67,6 @@ where
     // implicit return
     read_register_as_u8(i2c_bus, DR::Cfg as u8)
 }
-
-//
-// TODO convert code from Python to Rust
-//
 
 //     def set_config_register(self, config: ConfigRegister):
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
@@ -246,9 +243,9 @@ where
 //                 bh.write_register(0x50 + offset, 0x00)
 //                 bh.write_register(0x51 + offset, 0x00)
 
-//     # ---------------------------------------------------------------------
-//     # temperature measurements
-//     # ---------------------------------------------------------------------
+// ------------------------------------------------------------------------
+// temperature measurements
+// ------------------------------------------------------------------------
 
 //     def get_temperature_conversion_rate(self) -> str:
 //         """
@@ -277,9 +274,9 @@ where
 //         else:
 //             return False
 
-//     # ---------------------------------------------------------------------
-//     # temperature measurements - internal temperature sensor
-//     # ---------------------------------------------------------------------
+// ------------------------------------------------------------------------
+// temperature measurements - internal temperature sensor
+// ------------------------------------------------------------------------
 
 /// read the temperature measured by the internal sensor (in °C)
 //  - the data sheet guarantees a precision of ±2°C
@@ -295,8 +292,8 @@ where
 
 /// read the "high temperature" alerting limit
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
-/// default: [0x46, 0x00] (70.0°C)
+/// expected range: 0x00 (0.0ºC) to 0x55 (85.0ºC)
+/// default: 0x46 (70.0°C)
 pub fn get_internal_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> u8
@@ -307,9 +304,25 @@ where
     read_register_as_u8(i2c_bus, DR::ItsHi as u8)
 }
 
-//     def set_its_temperature_limit(self, value: float):
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             bh.write_register(0x05, int(value))
+/// set the "high temperature" alerting limit
+///
+/// expected range: 0x00 (0.0ºC) to 0x55 (85.0ºC)
+pub fn set_internal_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    limit: u8,
+) -> bool
+where
+    Dm: esp_hal::DriverMode,
+{
+    if limit <= 85 {
+        write_register_as_u8(i2c_bus, DR::ItsHi as u8, limit);
+        // implicit return
+        true
+    } else {
+        // implicit return
+        false
+    }
+}
 
 // ------------------------------------------------------------------------
 // temperature measurements - external temperature sensor
@@ -563,6 +576,7 @@ where
 
 // ------------------------------------------------------------------------
 
+// read a single byte from device register 'dr'
 fn read_register_as_u8<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, dr: u8) -> u8
 where
     Dm: esp_hal::DriverMode,
@@ -573,6 +587,15 @@ where
 
     // implicit return
     rb[0]
+}
+
+// write a single byte to device register 'dr'
+fn write_register_as_u8<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, dr: u8, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // TODO add error handling for write_register_as_u8()
+    let _ = i2c_bus.write(DEVICE_ADDRESS, &[dr, byte]);
 }
 
 // The master communicates with slave devices using I2C transactions.

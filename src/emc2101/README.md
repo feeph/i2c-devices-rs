@@ -3,6 +3,10 @@
 The EMC2101 is an SMBus 2.0 compliant, integrated fan control solution
 complete with two temperature monitors, one external and one internal.
 
+_Please note:_ All temperature values are in °C.
+
+The hardware does not support other units.
+
 ## Product IDs
 
 - EMC2101-ACZL-TR
