@@ -2,10 +2,18 @@
 // raw, low-level access (as implemented by hardware)
 //
 // TODO convert code from Python to Rust
+// TODO consider using async writes for I²C operations
+//      https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
 
+mod defaults;
 mod device_registers;
 
 use device_registers::DR;
+
+#[allow(unused_imports)]
+use log::{debug, error, info, warn};
+
+use crate::emc2101::hw::defaults::DEFAULTS;
 
 // the device's I²C bus address is always 0x4C
 // you must use an I²C bus multiplexer (e.g. TCA9548A) to connect multiple
@@ -51,6 +59,21 @@ where
 {
     // implicit return
     read_register_as_u8(i2c_bus, DR::Rev as u8)
+}
+
+pub fn reset_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+where
+    Dm: esp_hal::DriverMode,
+{
+    for data in DEFAULTS.iter() {
+        match i2c_bus.write(DEVICE_ADDRESS, data) {
+            Ok(_) => debug!(
+                "Successfully reset register '{0:#04X}' to default value '{1:#04X}'.",
+                data[0], data[1]
+            ),
+            Err(reason) => warn!("Failed to reset register '{0:#04X}': {reason}", data[0]),
+        }
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -613,20 +636,20 @@ fn read_multibyte_register_as_u8<Dm>(
 where
     Dm: esp_hal::DriverMode,
 {
-    let wb_msb = [dr[0]; 1];
-    let wb_lsb = [dr[1]; 1];
     let rb = [0u8; 2];
 
-    // TODO add error handling for read_multibyte_register_as_u8()
-    let _ = i2c_bus.transaction(
-        DEVICE_ADDRESS,
-        &mut [
-            esp_hal::i2c::master::Operation::Write(&wb_msb),
-            esp_hal::i2c::master::Operation::Read(&mut [rb[0]]),
-            esp_hal::i2c::master::Operation::Write(&wb_lsb),
-            esp_hal::i2c::master::Operation::Read(&mut [rb[1]]),
-        ],
-    );
+    // it's a bit overkill to use a loop for two iterations but that way we
+    // avoid code duplication and it opens up the possibility of reading an
+    // arbitrary number of values
+    for i in 0..=1 {
+        match i2c_bus.write_read(DEVICE_ADDRESS, &[dr[i]], &mut [rb[i]]) {
+            Ok(_) => debug!(
+                "Successfully read register '{0:#04X}' (value: {1:#04X}).",
+                dr[i], rb[i]
+            ),
+            Err(reason) => warn!("Failed to read register '{0:#04X}': {reason}", dr[i]),
+        }
+    }
 
     // implicit return
     rb

@@ -56,6 +56,14 @@ where
     }
 }
 
+/// reset the device register to their default values
+pub fn reset_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+where
+    Dm: esp_hal::DriverMode,
+{
+    hw::reset_device_registers(i2c_bus);
+}
+
 // ------------------------------------------------------------------------
 // fan speed control
 // ------------------------------------------------------------------------
