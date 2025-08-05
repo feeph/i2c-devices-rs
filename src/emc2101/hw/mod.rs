@@ -7,18 +7,15 @@
 
 mod defaults;
 mod device_registers;
+mod i2c_helpers;
 
 use device_registers::DR;
+use i2c_helpers::{read_multibyte_register_as_u8, read_register_as_u8, write_register_as_u8};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
 use crate::emc2101::hw::defaults::DEFAULTS;
-
-// the device's I²C bus address is always 0x4C
-// you must use an I²C bus multiplexer (e.g. TCA9548A) to connect multiple
-// EMC2101's to the same I²C bus
-static DEVICE_ADDRESS: u8 = 0x4C;
 
 // ------------------------------------------------------------------------
 // hardware details
@@ -61,19 +58,49 @@ where
     read_register_as_u8(i2c_bus, DR::Rev as u8)
 }
 
+/// reset all R/W registers to their default values
 pub fn reset_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
 where
     Dm: esp_hal::DriverMode,
 {
     for data in DEFAULTS.iter() {
-        match i2c_bus.write(DEVICE_ADDRESS, data) {
-            Ok(_) => debug!(
-                "Successfully reset register '{0:#04X}' to default value '{1:#04X}'.",
-                data[0], data[1]
-            ),
-            Err(reason) => warn!("Failed to reset register '{0:#04X}': {reason}", data[0]),
+        let register = data[0];
+        let default = data[1];
+        write_register_as_u8(i2c_bus, register, default);
+    }
+}
+
+/// validate that the R/W registers are set to their default values
+/// (this function can be used to verify the hardware is working)
+pub fn validate_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> bool
+where
+    Dm: esp_hal::DriverMode,
+{
+    let mut is_ok = true;
+    for data in DEFAULTS.iter() {
+        let register = data[0];
+        let default = data[1];
+
+        let value = read_register_as_u8(i2c_bus, register);
+        if default != value {
+            warn!("Currently stored and default value for register '{register:#04X}' do not match: {default:#04X} != {value:#04X}");
+            is_ok = false;
         }
     }
+
+    // implicit return
+    is_ok
+}
+
+/// get the device's status register
+///
+/// default: 0b0000_0000
+pub fn get_status_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Status as u8)
 }
 
 // ------------------------------------------------------------------------
@@ -89,6 +116,17 @@ where
 {
     // implicit return
     read_register_as_u8(i2c_bus, DR::Cfg as u8)
+}
+
+/// set the device's config register
+///
+/// default: 0b0000_0000
+pub fn set_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    write_register_as_u8(i2c_bus, DR::Cfg as u8, byte);
 }
 
 //     def set_config_register(self, config: ConfigRegister):
@@ -171,6 +209,25 @@ where
 //         else:
 //             LH.warning("Pin six is not configured for tacho mode. Please enable tacho mode.")
 //             return None
+
+/// read the fan's current RPM (expressed as "tach reading")
+/// - see section 6.14 of data sheet for details
+///
+/// expected range: 512 (0x200) .. 5104 (0x13F0)
+pub fn get_tach_reading<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u16
+where
+    Dm: esp_hal::DriverMode,
+{
+    let adr = [
+        DR::TachLsb as u8, // low byte, must be read first!
+        DR::TachMsb as u8, // high byte
+    ];
+    let values = read_multibyte_register_as_u8(i2c_bus, adr);
+    debug!("tach (bytes): {0:#04X} {1:#04X}", values[0], values[1]);
+
+    // implicit return
+    u16::from_le_bytes(values)
+}
 
 //     def get_driver_strength(self) -> int:
 //         """
@@ -302,7 +359,7 @@ where
 // ------------------------------------------------------------------------
 
 /// read the temperature measured by the internal sensor (in °C)
-//  - the data sheet guarantees a precision of ±2°C
+///  - the data sheet guarantees a precision of ±2°C
 ///
 /// expected range: 0x00 (0ºC) to 0x55 (85ºC)
 pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -491,12 +548,19 @@ where
 //         else:
 //             raise ValueError("temperature limit out of range (0 ≤ x ≤ 85°C)")
 
-//     def force_temperature_conversion(self):
-//         """
-//         performs a one-shot conversion
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             bh.write_register(0x0F, 0x00)
+/// trigger a temperature conversion ('one shot')
+/// - device must be in standby mode
+/// - does nothing in 'continuous conversion' mode)
+pub fn trigger_one_shot<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // the write operation is the important part
+    // (the data value is irrelevant and ignored)
+
+    // implicit return
+    write_register_as_u8(i2c_bus, DR::OneShot as u8, 0x00)
+}
 
 //     def force_temperature(self, temperature: float):
 //         """
@@ -548,19 +612,6 @@ where
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             bh.write_register(0x4A, value & 0xFF)
 
-//     def read_device_registers(self) -> dict[int, int]:
-//         registers = {}
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             for register in DEFAULTS:
-//                 registers[register] = bh.read_register(register)
-//         return registers
-
-//     def reset_device_registers(self):
-//         LH.debug("Resetting all device registers to their default values.")
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             for register, value in DEFAULTS.items():
-//                 bh.write_register(register, value)
-
 //     def _uses_tacho_mode(self) -> bool:
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             status_register = bh.read_register(0x03)
@@ -591,66 +642,4 @@ where
 //     else:
 //         return None
 
-// def _get_config_register(bh: BurstHandle) -> ConfigRegister:
-//     return parse_config_register(bh.read_register(0x03))
-
-// def _set_config_register(bh: BurstHandle, config: ConfigRegister):
-//     bh.write_register(0x03, config.as_int())
-
 // ------------------------------------------------------------------------
-
-// read a single byte from device register 'dr'
-fn read_register_as_u8<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, dr: u8) -> u8
-where
-    Dm: esp_hal::DriverMode,
-{
-    let mut rb = [0u8; 1];
-    // TODO add error handling for read_register_as_u8()
-    let _ = i2c_bus.write_read(DEVICE_ADDRESS, &[dr], &mut rb);
-
-    // implicit return
-    rb[0]
-}
-
-// write a single byte to device register 'dr'
-fn write_register_as_u8<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, dr: u8, byte: u8)
-where
-    Dm: esp_hal::DriverMode,
-{
-    // TODO add error handling for write_register_as_u8()
-    let _ = i2c_bus.write(DEVICE_ADDRESS, &[dr, byte]);
-}
-
-// The master communicates with slave devices using I2C transactions.
-// A transaction can be a write, a read, or a combination of both.
-// The I2c driver provides methods for performing these transactions.
-// -- https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
-
-// read two independent registers in the exact order provided
-//
-// returns the two values in exactly the same order
-fn read_multibyte_register_as_u8<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    dr: [u8; 2],
-) -> [u8; 2]
-where
-    Dm: esp_hal::DriverMode,
-{
-    let rb = [0u8; 2];
-
-    // it's a bit overkill to use a loop for two iterations but that way we
-    // avoid code duplication and it opens up the possibility of reading an
-    // arbitrary number of values
-    for i in 0..=1 {
-        match i2c_bus.write_read(DEVICE_ADDRESS, &[dr[i]], &mut [rb[i]]) {
-            Ok(_) => debug!(
-                "Successfully read register '{0:#04X}' (value: {1:#04X}).",
-                dr[i], rb[i]
-            ),
-            Err(reason) => warn!("Failed to read register '{0:#04X}': {reason}", dr[i]),
-        }
-    }
-
-    // implicit return
-    rb
-}

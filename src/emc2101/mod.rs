@@ -64,6 +64,49 @@ where
     hw::reset_device_registers(i2c_bus);
 }
 
+/// compare currently stored values to default values
+/// (use after reset_device_registers())
+pub fn validate_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> bool
+where
+    Dm: esp_hal::DriverMode,
+{
+    hw::validate_device_registers(i2c_bus)
+}
+
+/// a representation of the EMC2101's status register (0x02)
+///
+/// for an exhaustive description refer to the data sheet (section 6.4)
+pub struct StatusRegister {
+    // the comment describes what happens if the value is set to True
+    pub busy: bool,        // ADC is converting
+    pub temp_int_hi: bool, // internal temperature has met or exceeded the high limit
+    pub eeprom: bool,      // EEPROM  could  not  be  found (EMC2101-R)
+    pub temp_ext_hi: bool, // external diode temperature has exceeded the high limit
+    pub temp_ext_lo: bool, // external diode temperature has fallen below the low limit
+    pub diode_fault: bool, // fault has occurred on the External Diode
+    pub temp_crit: bool,   // external diode temperature has met or exceeded the TCRIT limit
+    pub rpm_low: bool,     // tach count has exceeded the tach limit (RPM too low)
+}
+
+pub fn get_status_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> StatusRegister
+where
+    Dm: esp_hal::DriverMode,
+{
+    let cfg = hw::get_status_register(i2c_bus);
+
+    // implicit return
+    StatusRegister {
+        busy: (cfg & 0b1000_0000) != 0,
+        temp_int_hi: (cfg & 0b0100_0000) != 0,
+        eeprom: (cfg & 0b0010_0000) != 0,
+        temp_ext_hi: (cfg & 0b0001_0000) != 0,
+        temp_ext_lo: (cfg & 0b0000_1000) != 0,
+        diode_fault: (cfg & 0b0000_0100) != 0,
+        temp_crit: (cfg & 0b0000_0010) != 0,
+        rpm_low: (cfg & 0b0000_0001) != 0,
+    }
+}
+
 // ------------------------------------------------------------------------
 // fan speed control
 // ------------------------------------------------------------------------
@@ -106,9 +149,61 @@ where
     }
 }
 
-//     # ---------------------------------------------------------------------
-//     # temperature measurements - internal temperature sensor
-//     # ---------------------------------------------------------------------
+pub fn set_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, cr: ConfigRegister)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let mut byte = 0u8;
+    if cr.mask {
+        byte |= 0b1000_0000;
+    }
+    if cr.standby {
+        byte |= 0b0100_0000;
+    }
+    if cr.fan_standby {
+        byte |= 0b0010_0000;
+    }
+    if cr.dac {
+        byte |= 0b0001_0000;
+    }
+    if cr.dis_to {
+        byte |= 0b0000_1000;
+    }
+    if cr.alt_tach {
+        byte |= 0b0000_0100;
+    }
+    if cr.tcrit_ovrd {
+        byte |= 0b0000_0010;
+    }
+    if cr.queue {
+        byte |= 0b0000_0001;
+    }
+
+    hw::set_config_register(i2c_bus, byte);
+}
+
+/// read the fan's current RPM
+///
+/// expected range:
+pub fn get_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let tach = hw::get_tach_reading(i2c_bus) as u32;
+    info!("tach (value): {tach}");
+
+    if tach != 0 {
+        // implicit return
+        5_400_000 / tach
+    } else {
+        // implicit return
+        0
+    }
+}
+
+// ------------------------------------------------------------------------
+// temperature measurements - internal temperature sensor
+// ------------------------------------------------------------------------
 
 /// read the temperature measured by the internal sensor (in °C)
 /// - the data sheet guarantees a precision of ±2°C
@@ -161,6 +256,10 @@ pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, 
 where
     Dm: esp_hal::DriverMode,
 {
+    // TODO check if in 'standby' or 'continuous conversion' mode and act accordingly
+    info!("Trigger a temperature conversion.");
+    hw::trigger_one_shot(i2c_bus);
+
     let bytes = hw::get_external_temperature(i2c_bus);
     debug!("get_external_temperature():");
     debug!("  MSB: {0:#04X}", bytes[1]);

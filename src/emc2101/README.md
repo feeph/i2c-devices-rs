@@ -9,8 +9,9 @@ The hardware does not support other units.
 
 ## Product IDs
 
-- EMC2101-ACZL-TR
-- EMC2101-R-ACZL-TR
+- EMC2101-ACZL-TR (MSOP-8)
+- EMC2101-R-ACZL-TR (MSOP-8)
+- EMC2101-ACZT-TR (SOIC-8)
 
 ## Documentation
 
