@@ -230,6 +230,43 @@ where
     hw::set_tach_limit(i2c_bus, tach);
 }
 
+/// read the fan speed register
+/// - this value has no effect if a lookup table is used
+///
+/// expected range: 0..100%
+pub fn get_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // TODO ensure the lookup table is disabled
+    // TODO use a percentage as input value
+    //      (hide the internal value from the user)
+    // TODO report the new value back to the user
+    //      (may differ from requested value depending on granularity)
+
+    // implicit return
+    hw::get_fan_speed(i2c_bus)
+}
+
+/// change the fan speed register
+/// - this value has no effect if a lookup table is used
+/// - remember that the change won't instantly change the actual RPM!
+///
+/// expected range: 0..100%
+pub fn set_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // TODO ensure the lookup table is disabled
+    // TODO use a percentage as input value
+    //      (hide the internal value from the user)
+    // TODO report the new value back to the user
+    //      (may differ from requested value depending on granularity)
+
+    let value_clamped = value.clamp(0, 32);
+    hw::set_fan_speed(i2c_bus, value_clamped);
+}
+
 pub struct PwmSettings {
     pub frequency: u8, // range: 0..32
     pub divider: u8,   // range: 0..256

@@ -219,6 +219,34 @@ where
 
 // FanSett = 0x4C,   // fan setting
 
+/// read the fan speed register
+/// - the fan speed is expressed as a decimal number
+/// - the granularity of this value depends on the chosen PWM setting
+/// - this value has no effect if a lookup table is used
+///
+/// expected range: 0..63 (maximum value is PWM dependent)
+pub fn get_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::FanSpeed as u8)
+}
+
+/// change the fan speed register
+/// - the fan speed is expressed as a decimal number
+/// - the granularity of this value depends on the chosen PWM setting
+/// - this value has no effect if a lookup table is used
+///
+/// expected range: 0..63 (maximum value is PWM dependent)
+pub fn set_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0, 32);
+    write_register_as_u8(i2c_bus, DR::FanSpeed as u8, value_clamped);
+}
+
 //     def get_driver_strength(self) -> int:
 //         """
 //         get the configured fan speed (raw value)

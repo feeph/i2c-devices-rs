@@ -32,7 +32,7 @@ pub enum DR {
     TachLoMsb = 0x49, // rpm low limit (high byte)
     FanCfg = 0x4A,    // fan configuration
     FanSpin = 0x4B,   // fan spin-up strength
-    FanSett = 0x4C,   // fan setting
+    FanSpeed = 0x4C,  // fan speed setting
     PwmFrq = 0x4D,    // pwm frequency
     PwmFrqDiv = 0x4E, // pwm frequency divider
     LtHyst = 0x4F,    // lookup table hysteresis
