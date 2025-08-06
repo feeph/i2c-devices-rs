@@ -132,19 +132,6 @@ where
     write_register_as_u8(i2c_bus, DR::Cfg as u8, byte);
 }
 
-//     def configure_pwm_control(self, pwm_d: int, pwm_f: int, step_max: int) -> bool:
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             # enable PWM control
-//             if _get_config_register(bh).dac:
-//                 LH.warning("Unable to use PWM! Device is configured for direct current control.")
-//                 return False
-//             # configure pwm frequency divider settings
-//             bh.write_register(0x4D, pwm_f)
-//             bh.write_register(0x4E, pwm_d)
-//             # configure maximum allowed step
-//             self._step_max = step_max
-//             return True
-
 //     def configure_spinup_behaviour(self, spinup_strength: SpinUpStrength, spinup_duration: SpinUpDuration, fast_mode: bool) -> bool:
 //         """
 //         configure the spin-up behavior for the attached fan (duration and
@@ -177,20 +164,6 @@ where
 //                 LH.warning("Pin 6 is in alert mode. Can't configure spinup behavior.")
 //                 return False
 
-//     def configure_minimum_rpm(self, minimum_rpm: int):
-//         """
-//         configure the expected minimum RPM value
-
-//         if the measured RPM is below this RPM the fan is considered to be
-//         not spinning and the TACH bit is set
-
-//         due to the way the RPM is measured the lowest possible value is 82 RPM
-//         """
-//         (msb, lsb) = _convert_rpm2tach(minimum_rpm)
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             bh.write_register(0x48, lsb)  # TACH Limit Low Byte
-//             bh.write_register(0x49, msb)  # TACH Limit High Byte
-
 /// read the fan's current speed (expressed as "tach reading")
 /// - see section 6.14 of data sheet for details
 ///
@@ -210,6 +183,42 @@ where
     u16::from_le_bytes(values)
 }
 
+/// read the fan's speed limit (expressed as "tach reading")
+pub fn get_tach_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u16
+where
+    Dm: esp_hal::DriverMode,
+{
+    let adr = [
+        DR::TachLoLsb as u8, // low byte, must be read first!
+        DR::TachLoMsb as u8, // high byte
+    ];
+    let values = read_multibyte_register_as_u8(i2c_bus, adr);
+
+    // implicit return
+    u16::from_le_bytes(values)
+}
+
+/// change the fan's speed limit (expressed as "tach reading")
+pub fn set_tach_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, tach: u16)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let lsb = (tach & 0b1111_1111) as u8;
+    let msb = ((tach >> 8) & 0b1111_1111) as u8;
+
+    let values = [
+        [DR::TachLsb as u8, lsb], // low byte
+        [DR::TachMsb as u8, msb], // high byte
+    ];
+    write_multibyte_register_as_u8(i2c_bus, values);
+}
+
+// FanCfg = 0x4A,    // fan configuration
+
+// FanSpin = 0x4B,   // fan spin-up strength
+
+// FanSett = 0x4C,   // fan setting
+
 //     def get_driver_strength(self) -> int:
 //         """
 //         get the configured fan speed (raw value)
@@ -227,6 +236,49 @@ where
 //                 bh.write_register(0x4C, step)
 //             # confirm the register was set to desired value
 //             return step == bh.read_register(0x4C)
+
+/// read the PWM  frequency register
+///
+/// expected range: 0..32
+pub fn get_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::PwmFrq as u8)
+}
+
+/// change the PWM  frequency register
+///
+/// expected range: 0..32
+pub fn set_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0, 32);
+    write_register_as_u8(i2c_bus, DR::PwmFrq as u8, value_clamped);
+}
+
+/// read the PWM  frequency divider register
+///
+/// expected range: 0..256
+pub fn get_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::PwmFrqDiv as u8)
+}
+
+/// change the PWM  frequency divider register
+///
+/// expected range: 0..256
+pub fn set_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DR::PwmFrq as u8, value);
+}
 
 //     def enable_lookup_table(self) -> bool:
 //         """

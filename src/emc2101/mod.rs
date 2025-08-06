@@ -4,12 +4,14 @@
 
 pub mod hw;
 
-mod temperature;
+mod conversions;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
-use temperature::{convert_bytes2temperature, convert_temperature2bytes};
+use conversions::{
+    convert_bytes2temperature, convert_rpm2tach, convert_tach2rpm, convert_temperature2bytes,
+};
 
 static UNKNOWN: &str = "<unknown>";
 
@@ -188,21 +190,87 @@ where
 
 /// read the fan's current RPM
 ///
-/// expected range:
+/// expected range: 83 to 5_400_000
 pub fn get_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u32
 where
     Dm: esp_hal::DriverMode,
 {
-    let tach = hw::get_tach_reading(i2c_bus) as u32;
-    info!("tach (value): {tach}");
+    let tach = hw::get_tach_reading(i2c_bus);
 
-    if tach != 0 {
-        // implicit return
-        5_400_000 / tach
-    } else {
-        // implicit return
-        0
+    convert_tach2rpm(tach)
+}
+
+/// read the fan's minimum RPM
+/// - if the measured RPM is below this RPM the fan is considered to be not
+///   spinning and the TACH bit is set in the status register (sr.rpm_low)
+/// - (depending on the config register) the ALERT/TACH pin will be pulled high
+///
+/// expected range: 83 to 5_400_000
+pub fn get_minimum_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let tach = hw::get_tach_limit(i2c_bus);
+
+    // implicit return
+    convert_tach2rpm(tach)
+}
+
+/// change the fan's minimum RPM
+/// - if the measured RPM is below this RPM the fan is considered to be not
+///   spinning and the TACH bit is set in the status register (sr.rpm_low)
+/// - (depending on the config register) the ALERT/TACH pin will be pulled high
+///
+/// expected range: 83 to 5_400_000
+pub fn set_minimum_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, rpm: u32)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let tach = convert_rpm2tach(rpm);
+    hw::set_tach_limit(i2c_bus, tach);
+}
+
+//     def configure_pwm_control(self, pwm_d: int, pwm_f: int, step_max: int) -> bool:
+//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
+//             # enable PWM control
+//             if _get_config_register(bh).dac:
+//                 LH.warning("Unable to use PWM! Device is configured for direct current control.")
+//                 return False
+//             # configure pwm frequency divider settings
+//             bh.write_register(0x4D, pwm_f)
+//             bh.write_register(0x4E, pwm_d)
+//             # configure maximum allowed step
+//             self._step_max = step_max
+//             return True
+
+pub struct PwmSettings {
+    pub frequency: u8,
+    pub divider: u8,
+}
+
+pub fn get_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> PwmSettings
+where
+    Dm: esp_hal::DriverMode,
+{
+    let pwm_f = hw::get_pwm_frequency(i2c_bus);
+    let pwm_d = hw::get_pwm_frequency_divider(i2c_bus);
+
+    // implicit return
+    PwmSettings {
+        frequency: pwm_f,
+        divider: pwm_d,
     }
+}
+
+pub fn set_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, pwm: PwmSettings)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // TODO PWM settings could be temporarily incompatible
+    // (old divider incompatible with new frequency)
+    // may need to disable CLK_OVR, update PWM and reenable CLK_OVR?
+    hw::set_pwm_frequency(i2c_bus, pwm.frequency);
+    hw::set_pwm_frequency_divider(i2c_bus, pwm.divider);
 }
 
 // ------------------------------------------------------------------------
