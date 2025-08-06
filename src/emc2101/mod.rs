@@ -4,8 +4,12 @@
 
 pub mod hw;
 
+mod temperature;
+
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
+
+use temperature::{convert_bytes2temperature, convert_temperature2bytes};
 
 static UNKNOWN: &str = "<unknown>";
 
@@ -271,9 +275,9 @@ where
     convert_bytes2temperature(bytes)
 }
 
-/// read the "low temperature" alerting limit
-/// - expected range: 0.00ºC to 85.00ºC
-/// - default: 0.00°C
+/// read the "low temperature" alerting limit in °C
+///
+/// expected range: 0.0 ≤ x ≤ 85.0°C
 pub fn get_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> f32
@@ -286,9 +290,32 @@ where
     convert_bytes2temperature(bytes)
 }
 
-/// read the "high temperature" alerting limit
-/// - expected range: 0.00ºC to 85.00ºC
-/// - default: 70.00°C
+/// change the "low temperature" alerting limit (in °C)
+/// - provided value will be clamped to allowed range (0.0 ≤ x ≤ 85.0°C)
+/// - the fractional part has limited precision and will be clamped to the
+///   nearest available step.
+/// - The clamped value is returned to the caller.
+///
+/// default: 0.00°C
+pub fn set_external_temperature_low_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    value: f32,
+) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0.0, 85.0);
+
+    let bytes = convert_temperature2bytes(value_clamped);
+    hw::set_external_temperature_low_limit(i2c_bus, bytes);
+
+    // implicit return
+    convert_bytes2temperature(bytes)
+}
+
+/// read the "high temperature" alerting limit (in °C)
+///
+/// expected range: 0.0 ≤ x ≤ 85.0°C
 pub fn get_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> f32
@@ -301,30 +328,32 @@ where
     convert_bytes2temperature(bytes)
 }
 
+/// change the "high temperature" alerting limit (in °C)
+/// - provided value will be clamped to allowed range (0.0 ≤ x ≤ 85.0°C)
+/// - the fractional part has limited precision and will be clamped to the
+///   nearest available step.
+/// - The clamped value is returned to the caller.
+///
+/// default: 85.00°C
+pub fn set_external_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    value: f32,
+) -> f32
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0.0, 85.0);
+
+    let bytes = convert_temperature2bytes(value_clamped);
+    hw::set_external_temperature_high_limit(i2c_bus, bytes);
+
+    // implicit return
+    convert_bytes2temperature(bytes)
+}
+
 // ------------------------------------------------------------------------
 // helper functions
 // ------------------------------------------------------------------------
-
-// convert the provided temperature from internal value to float
-// e.g.: 0x0C + 0xE0 -> 13.9 (13 + 0.50 + 0.25 + 0.15)
-fn convert_bytes2temperature(bytes: [u8; 2]) -> f32 {
-    let msb = bytes[0];
-    let lsb = bytes[1];
-
-    let mut temp = msb as f32;
-    if (lsb & 0b1000_0000) != 0 {
-        temp += 0.50;
-    }
-    if (lsb & 0b0100_0000) != 0 {
-        temp += 0.25;
-    }
-    if (lsb & 0b0010_0000) != 0 {
-        temp += 0.15;
-    }
-
-    // implicit return
-    temp
-}
 
 fn identify_manufacturer(mid: u8) -> &'static str {
     let smsc: &'static str = "SMSC";

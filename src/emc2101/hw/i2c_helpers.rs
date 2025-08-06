@@ -66,3 +66,23 @@ where
     // implicit return
     rb
 }
+
+/// write two independent registers in the exact order provided
+pub fn write_multibyte_register_as_u8<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    values: [[u8; 2]; 2],
+) where
+    Dm: esp_hal::DriverMode,
+{
+    for x in values.iter() {
+        match i2c_bus.write(DEVICE_ADDRESS, x) {
+            Ok(_) => {
+                debug!(
+                    "Successfully wrote register '{0:#04X}' (value: {1:#04X}).",
+                    x[0], x[1]
+                );
+            }
+            Err(reason) => warn!("Failed to read register '{0:#04X}': {reason}", x[0]),
+        }
+    }
+}

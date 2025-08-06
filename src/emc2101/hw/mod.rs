@@ -10,7 +10,10 @@ mod device_registers;
 mod i2c_helpers;
 
 use device_registers::DR;
-use i2c_helpers::{read_multibyte_register_as_u8, read_register_as_u8, write_register_as_u8};
+use i2c_helpers::{
+    read_multibyte_register_as_u8, read_register_as_u8, write_multibyte_register_as_u8,
+    write_register_as_u8,
+};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -129,10 +132,6 @@ where
     write_register_as_u8(i2c_bus, DR::Cfg as u8, byte);
 }
 
-//     def set_config_register(self, config: ConfigRegister):
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             _set_config_register(bh, config)
-
 //     def configure_pwm_control(self, pwm_d: int, pwm_f: int, step_max: int) -> bool:
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             # enable PWM control
@@ -192,28 +191,10 @@ where
 //             bh.write_register(0x48, lsb)  # TACH Limit Low Byte
 //             bh.write_register(0x49, msb)  # TACH Limit High Byte
 
-//     def get_rpm(self) -> int | None:
-//         """
-//         get current fan speed
-
-//         (pin 6 must be configured for tacho mode)
-//         """
-//         if self._uses_tacho_mode():
-//             # get tacho readings
-//             # (the order of is important; see datasheet section 6.1 for details)
-//             with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//                 lsb = bh.read_register(0x46)  # TACH Reading Low Byte, must be read first!
-//                 msb = bh.read_register(0x47)  # TACH Reading High Byte
-//             LH.debug("tach readings: LSB=0x%02X MSB=0x%02X", lsb, msb)
-//             return _convert_tach2rpm(msb=msb, lsb=lsb)
-//         else:
-//             LH.warning("Pin six is not configured for tacho mode. Please enable tacho mode.")
-//             return None
-
-/// read the fan's current RPM (expressed as "tach reading")
+/// read the fan's current speed (expressed as "tach reading")
 /// - see section 6.14 of data sheet for details
 ///
-/// expected range: 512 (0x200) .. 5104 (0x13F0)
+/// expected range: 512 (0x0200) .. 5104 (0x13F0)
 pub fn get_tach_reading<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u16
 where
     Dm: esp_hal::DriverMode,
@@ -488,30 +469,21 @@ where
     read_multibyte_register_as_u8(i2c_bus, adr)
 }
 
-//     def set_ets_low_temperature_limit(self, value: float) -> float:
-//         """
-//         set upper/lower temperature alerting limit in °C
-
-//         The fractional part has limited precision and will be clamped to the
-//         nearest available step. The clamped value is returned to the caller.
-//         """
-//         if self._temp_min <= value <= self._temp_max:
-//             (msb, lsb) = convert_temperature2bytes(value)
-//             with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//                 bh.write_register(0x08, msb)
-//                 bh.write_register(0x14, lsb)
-//             return convert_bytes2temperature(msb, lsb)
-//         else:
-//             raise ValueError(f"temperature limit out of range ({self._temp_min} ≤ x ≤ {self._temp_max}°C)")
-
-//     def get_ets_high_temperature_limit(self) -> float:
-//         """
-//         get upper/lower temperature alerting limit in °C
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             msb = bh.read_register(0x07)  # high byte, must be read first!
-//             lsb = bh.read_register(0x13)  # low byte
-//         return convert_bytes2temperature(msb, lsb)
+/// change the "low temperature" alerting limit
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+pub fn set_external_temperature_low_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    bytes: [u8; 2],
+) where
+    Dm: esp_hal::DriverMode,
+{
+    let values = [
+        [DR::EtsLoMsb as u8, bytes[0]], // high byte
+        [DR::EtsLoLsb as u8, bytes[1]], // low byte
+    ];
+    write_multibyte_register_as_u8(i2c_bus, values);
+}
 
 /// read the "high temperature" alerting limit
 ///
@@ -532,21 +504,21 @@ where
     read_multibyte_register_as_u8(i2c_bus, adr)
 }
 
-//     def set_ets_high_temperature_limit(self, value: float) -> float:
-//         """
-//         set upper/lower temperature alerting limit in °C
-
-//         The fractional part has limited precision and will be clamped to the
-//         nearest available step. The clamped value is returned to the caller.
-//         """
-//         if self._temp_min <= value <= self._temp_max:
-//             (msb, lsb) = convert_temperature2bytes(value)
-//             with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//                 bh.write_register(0x07, msb)
-//                 bh.write_register(0x13, lsb)
-//             return convert_bytes2temperature(msb, lsb)
-//         else:
-//             raise ValueError("temperature limit out of range (0 ≤ x ≤ 85°C)")
+/// change the "high temperature" alerting limit
+///
+/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+pub fn set_external_temperature_high_limit<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    bytes: [u8; 2],
+) where
+    Dm: esp_hal::DriverMode,
+{
+    let values = [
+        [DR::EtsHiMsb as u8, bytes[0]], // high byte
+        [DR::EtsHiLsb as u8, bytes[1]], // low byte
+    ];
+    write_multibyte_register_as_u8(i2c_bus, values);
+}
 
 /// trigger a temperature conversion ('one shot')
 /// - device must be in standby mode
@@ -627,19 +599,3 @@ where
 //     msb = (tach & 0xFF00) >> 8
 //     lsb = tach & 0x00FF
 //     return (msb, lsb)
-
-// def _convert_tach2rpm(msb: int, lsb: int) -> int | None:
-//     """
-//     convert the raw values to an RPM value
-
-//     returns 'None' if the reading is invalid
-//     """
-//     tach = (msb << 8) + lsb
-//     # 0xFFFF = invalid value
-//     if tach < 0xFFFF:
-//         rpm = int(5_400_000 / tach)
-//         return rpm
-//     else:
-//         return None
-
-// ------------------------------------------------------------------------
