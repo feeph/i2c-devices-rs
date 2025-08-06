@@ -230,22 +230,9 @@ where
     hw::set_tach_limit(i2c_bus, tach);
 }
 
-//     def configure_pwm_control(self, pwm_d: int, pwm_f: int, step_max: int) -> bool:
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             # enable PWM control
-//             if _get_config_register(bh).dac:
-//                 LH.warning("Unable to use PWM! Device is configured for direct current control.")
-//                 return False
-//             # configure pwm frequency divider settings
-//             bh.write_register(0x4D, pwm_f)
-//             bh.write_register(0x4E, pwm_d)
-//             # configure maximum allowed step
-//             self._step_max = step_max
-//             return True
-
 pub struct PwmSettings {
-    pub frequency: u8,
-    pub divider: u8,
+    pub frequency: u8, // range: 0..32
+    pub divider: u8,   // range: 0..256
 }
 
 pub fn get_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> PwmSettings
@@ -266,9 +253,10 @@ pub fn set_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, pwm
 where
     Dm: esp_hal::DriverMode,
 {
+    // TODO validate that PWM control is being used (refuse if configured for DAC)
     // TODO PWM settings could be temporarily incompatible
-    // (old divider incompatible with new frequency)
-    // may need to disable CLK_OVR, update PWM and reenable CLK_OVR?
+    //      (old divider incompatible with new frequency)
+    //      may need to disable CLK_OVR, update PWM and reenable CLK_OVR?
     hw::set_pwm_frequency(i2c_bus, pwm.frequency);
     hw::set_pwm_frequency_divider(i2c_bus, pwm.divider);
 }
