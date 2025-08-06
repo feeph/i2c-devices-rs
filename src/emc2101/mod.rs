@@ -235,6 +235,7 @@ pub struct PwmSettings {
     pub divider: u8,   // range: 0..256
 }
 
+/// read the fan's PWM settings (frequency + divider)
 pub fn get_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> PwmSettings
 where
     Dm: esp_hal::DriverMode,
@@ -249,6 +250,8 @@ where
     }
 }
 
+/// change the fan's PWM settings (frequency + divider)
+/// (the values determine the available steps for setting the fan speed)
 pub fn set_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, pwm: PwmSettings)
 where
     Dm: esp_hal::DriverMode,
