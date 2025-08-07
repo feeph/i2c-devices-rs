@@ -106,6 +106,36 @@ where
     read_register_as_u8(i2c_bus, DR::Status as u8)
 }
 
+pub fn get_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Scratch1 as u8)
+}
+
+pub fn set_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DR::Scratch1 as u8, value);
+}
+
+pub fn get_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::Scratch2 as u8)
+}
+
+pub fn set_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DR::Scratch2 as u8, value);
+}
+
 // ------------------------------------------------------------------------
 // fan speed control
 // ------------------------------------------------------------------------
