@@ -230,6 +230,157 @@ where
     hw::set_tach_limit(i2c_bus, tach);
 }
 
+/// see data sheet (section 6.16) for details
+/// TODO improve this struct and make it self-documenting
+pub struct FanConfig {
+    // bit 7 is unused
+    pub force: bool,     // enable the external temperature force register
+    pub prog: bool,      // enable lookup table
+    pub polarity: bool,  // duty cycle polarity: 0..63 = 0..100% or 0..63 = 100..0%
+    pub clk_sel: bool,   // pwm base clock selection
+    pub clk_ovr: bool,   // clock selection override
+    pub tach_mode: bool, // select value to indicate "rpm low"
+}
+
+/// read the fan config register
+pub fn get_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> FanConfig
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value = hw::get_fan_config(i2c_bus);
+
+    FanConfig {
+        force: is_bit_set(value, 0b0100_0000),
+        prog: is_bit_set(value, 0b0010_0000),
+        polarity: is_bit_set(value, 0b0001_0000),
+        clk_sel: is_bit_set(value, 0b0000_1000),
+        clk_ovr: is_bit_set(value, 0b0000_0100),
+        // 0b01, 0b10 and 0b11 all have the same meaning
+        tach_mode: is_bit_set(value, 0b0000_0011),
+    }
+}
+
+/// change the fan config register
+pub fn set_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, fan_config: FanConfig)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let mut value = 0x00;
+    if fan_config.force {
+        value |= 0b0100_0000;
+    }
+    if fan_config.prog {
+        value |= 0b0010_0000;
+    }
+    if fan_config.polarity {
+        value |= 0b0001_0000;
+    }
+    if fan_config.clk_sel {
+        value |= 0b0000_1000;
+    }
+    if fan_config.clk_ovr {
+        value |= 0b0000_0100;
+    }
+    if fan_config.tach_mode {
+        value |= 0b0000_0011;
+    }
+
+    hw::set_fan_config(i2c_bus, value);
+}
+
+pub struct SpinUpBehavior {
+    pub fast_mode: bool,
+    pub strength: SpinUpStrength,
+    pub duration: SpinUpDuration,
+}
+
+pub enum SpinUpStrength {
+    Bypass = 0b0000_0000,
+    Half = 0b0000_1000,
+    ThreeQuarter = 0b0001_0000,
+    Full = 0b0001_1000,
+}
+
+pub enum SpinUpDuration {
+    Bypass = 0b0000_0000,
+    Ms0050 = 0b0000_0001,
+    Ms0100 = 0b0000_0010,
+    Ms0200 = 0b0000_0011,
+    Ms0400 = 0b0000_0100,
+    Ms0800 = 0b0000_0101,
+    Ms1600 = 0b0000_0110,
+    Ms3200 = 0b0000_0111,
+}
+
+/// read the fan spin up behavior
+pub fn get_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> SpinUpBehavior
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value = hw::get_spin_up_behavior(i2c_bus);
+
+    let mut fast_mode = false;
+    if (value & 0b0010_0000) != 0 {
+        fast_mode = true;
+    }
+
+    // slightly smelly code
+    let strength: SpinUpStrength;
+    if (value & 0b0001_1000) != 0 {
+        strength = SpinUpStrength::Full;
+    } else if (value & 0b0001_0000) != 0 {
+        strength = SpinUpStrength::ThreeQuarter;
+    } else if (value & 0b0000_1000) != 0 {
+        strength = SpinUpStrength::Half;
+    } else {
+        strength = SpinUpStrength::Bypass;
+    }
+
+    // really smelly code
+    let duration: SpinUpDuration;
+    if (value & 0b0000_0111) != 0 {
+        duration = SpinUpDuration::Ms3200;
+    } else if (value & 0b0000_0110) != 0 {
+        duration = SpinUpDuration::Ms1600;
+    } else if (value & 0b0000_0101) != 0 {
+        duration = SpinUpDuration::Ms0800;
+    } else if (value & 0b0000_0100) != 0 {
+        duration = SpinUpDuration::Ms0400;
+    } else if (value & 0b0000_0011) != 0 {
+        duration = SpinUpDuration::Ms0200;
+    } else if (value & 0b0000_0010) != 0 {
+        duration = SpinUpDuration::Ms0100;
+    } else if (value & 0b0000_0001) != 0 {
+        duration = SpinUpDuration::Ms0050;
+    } else {
+        duration = SpinUpDuration::Bypass;
+    }
+
+    // implicit return
+    SpinUpBehavior {
+        fast_mode,
+        strength,
+        duration,
+    }
+}
+
+/// change the fan spin up behavior
+pub fn set_spin_up_behavior<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    sub: SpinUpBehavior,
+) where
+    Dm: esp_hal::DriverMode,
+{
+    let mut value: u8 = 0x00;
+    if sub.fast_mode {
+        value |= 0b0010_0000;
+    }
+    value |= sub.strength as u8;
+    value |= sub.duration as u8;
+
+    hw::set_spin_up_behavior(i2c_bus, value);
+}
+
 /// read the fan speed register
 /// - this value has no effect if a lookup table is used
 ///
@@ -471,4 +622,8 @@ fn identify_product(pid: u8) -> &'static str {
         0x28 => emc2101r,
         _ => UNKNOWN,
     }
+}
+
+fn is_bit_set(value: u8, bitmask: u8) -> bool {
+    value & bitmask != 0
 }

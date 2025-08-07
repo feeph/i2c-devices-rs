@@ -213,11 +213,41 @@ where
     write_multibyte_register_as_u8(i2c_bus, values);
 }
 
-// FanCfg = 0x4A,    // fan configuration
+/// read the fan config register
+pub fn get_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::FanCfg as u8)
+}
 
-// FanSpin = 0x4B,   // fan spin-up strength
+/// change the fan config register
+pub fn set_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0, 32);
+    write_register_as_u8(i2c_bus, DR::FanCfg as u8, value_clamped);
+}
 
-// FanSett = 0x4C,   // fan setting
+/// read the fan spin up behavior register
+pub fn get_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::FanSpinUp as u8)
+}
+
+/// change the fan spin up behavior register
+pub fn set_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0, 32);
+    write_register_as_u8(i2c_bus, DR::FanSpinUp as u8, value_clamped);
+}
 
 /// read the fan speed register
 /// - the fan speed is expressed as a decimal number

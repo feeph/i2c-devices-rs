@@ -31,7 +31,7 @@ pub enum DR {
     TachLoLsb = 0x48, // rpm low limit (low byte)
     TachLoMsb = 0x49, // rpm low limit (high byte)
     FanCfg = 0x4A,    // fan configuration
-    FanSpin = 0x4B,   // fan spin-up strength
+    FanSpinUp = 0x4B, // fan spin-up configuration
     FanSpeed = 0x4C,  // fan speed setting
     PwmFrq = 0x4D,    // pwm frequency
     PwmFrqDiv = 0x4E, // pwm frequency divider
