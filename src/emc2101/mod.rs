@@ -4,11 +4,13 @@
 
 pub mod hw;
 
+mod conversion_rate;
 mod conversions;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+pub use conversion_rate::*;
 use conversions::{
     convert_bytes2temperature, convert_rpm2tach, convert_tach2rpm, convert_temperature2bytes,
 };

@@ -10,7 +10,7 @@ pub enum DR {
     EtsMsb = 0x01,    // external diode - temperature (high byte)
     Status = 0x02,    // status
     Cfg = 0x03,       // device config register
-    Conv = 0x04,      // conversion rate
+    ConvRate = 0x04,  // conversion rate
     ItsHi = 0x05,     // internal sensor - temperature high limit
     EtsHiMsb = 0x07,  // external diode - temperature high limit (high byte)
     EtsLoMsb = 0x08,  // external diode - temperature low limit (high byte)

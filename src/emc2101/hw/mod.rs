@@ -299,6 +299,7 @@ where
 /// - this value has no effect if a lookup table is used
 ///
 /// expected range: 0..63 (maximum value is PWM dependent)
+// TODO clamp to minimum/maximum as defined by the fan configuration
 pub fn set_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
 where
     Dm: esp_hal::DriverMode,
@@ -307,25 +308,7 @@ where
     write_register_as_u8(i2c_bus, DR::FanSpeed as u8, value_clamped);
 }
 
-//     def get_driver_strength(self) -> int:
-//         """
-//         get the configured fan speed (raw value)
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             return bh.read_register(0x4C)
-
-//     def set_driver_strength(self, step: int, disable_lut: bool = False) -> bool:
-//         """
-//         set the configured fan speed (raw value)
-//          - clamp to minimum/maximum as defined by the fan configuration
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             if self._step_min <= step <= self._step_max:
-//                 bh.write_register(0x4C, step)
-//             # confirm the register was set to desired value
-//             return step == bh.read_register(0x4C)
-
-/// read the PWM  frequency register
+/// read the PWM frequency register
 ///
 /// expected range: 0..32
 pub fn get_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -336,7 +319,7 @@ where
     read_register_as_u8(i2c_bus, DR::PwmFrq as u8)
 }
 
-/// change the PWM  frequency register
+/// change the PWM frequency register
 ///
 /// expected range: 0..32
 pub fn set_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
@@ -347,7 +330,7 @@ where
     write_register_as_u8(i2c_bus, DR::PwmFrq as u8, value_clamped);
 }
 
-/// read the PWM  frequency divider register
+/// read the PWM frequency divider register
 ///
 /// expected range: 0..256
 pub fn get_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -358,7 +341,7 @@ where
     read_register_as_u8(i2c_bus, DR::PwmFrqDiv as u8)
 }
 
-/// change the PWM  frequency divider register
+/// change the PWM frequency divider register
 ///
 /// expected range: 0..256
 pub fn set_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
@@ -447,6 +430,27 @@ where
 // ------------------------------------------------------------------------
 // temperature measurements
 // ------------------------------------------------------------------------
+
+/// read the temperature conversion rate register
+///
+/// expected range: 0..16
+pub fn get_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DR::ConvRate as u8)
+}
+
+/// change the temperature conversion rate register
+///
+/// expected range: 0..16
+pub fn set_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DR::ConvRate as u8, value);
+}
 
 //     def get_temperature_conversion_rate(self) -> str:
 //         """
