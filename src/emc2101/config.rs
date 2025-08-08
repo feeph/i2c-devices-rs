@@ -43,6 +43,8 @@ pub struct ConfigRegister {
     pub queue: bool,       // alert after 3 critical temperature readings
 }
 
+/// <function not documented>
+// TODO document get_config_register()
 pub fn get_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> ConfigRegister
 where
     Dm: esp_hal::DriverMode,
@@ -62,6 +64,8 @@ where
     }
 }
 
+/// <function not documented>
+// TODO document set_config_register()
 pub fn set_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, cr: ConfigRegister)
 where
     Dm: esp_hal::DriverMode,
@@ -245,6 +249,10 @@ where
 
     hw::set_fan_config(i2c_bus, value);
 }
+
+// ------------------------------------------------------------------------
+// PWM related settings
+// ------------------------------------------------------------------------
 
 pub struct PwmSettings {
     pub frequency: u8, // range: 0..32

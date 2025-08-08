@@ -460,33 +460,6 @@ where
     write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ConvRate as u8, value);
 }
 
-//     def get_temperature_conversion_rate(self) -> str:
-//         """
-//         get the number of temperature conversions per second
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             value = bh.read_register(0x04)
-//         value = min(value, 0b1001)  # all values larger than 0b1001 map to 0b1001
-//         return [k for k, v in CONVERSIONS_PER_SECOND.items() if v == value][0]
-
-//     def get_temperature_conversion_rates(self) -> list[str]:
-//         """
-//         returns all available temperature conversion rates
-//         """
-//         return list(CONVERSIONS_PER_SECOND.keys())
-
-//     def set_temperature_conversion_rate(self, conversion_rate: str) -> bool:
-//         """
-//         set the number of temperature conversions per second
-//         """
-//         value = CONVERSIONS_PER_SECOND.get(conversion_rate)
-//         if value is not None:
-//             with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//                 bh.write_register(0x04, value)
-//             return True
-//         else:
-//             return False
-
 // ------------------------------------------------------------------------
 // temperature measurements - internal temperature sensor
 // ------------------------------------------------------------------------
@@ -494,7 +467,7 @@ where
 /// read the temperature measured by the internal sensor (in °C)
 ///  - the data sheet guarantees a precision of ±2°C
 ///
-/// expected range: 0x00 (0ºC) to 0x55 (85ºC)
+/// expected range: 0x00 (0°C) to 0x55 (85°C)
 pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
 where
     Dm: esp_hal::DriverMode,
@@ -505,7 +478,7 @@ where
 
 /// read the "high temperature" alerting limit
 ///
-/// expected range: 0x00 (0.0ºC) to 0x55 (85.0ºC)
+/// expected range: 0x00 (0.0°C) to 0x55 (85.0°C)
 /// default: 0x46 (70.0°C)
 pub fn get_internal_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
@@ -519,7 +492,7 @@ where
 
 /// set the "high temperature" alerting limit
 ///
-/// expected range: 0x00 (0.0ºC) to 0x55 (85.0ºC)
+/// expected range: 0x00 (0.0°C) to 0x55 (85.0°C)
 pub fn set_internal_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
     limit: u8,
@@ -588,7 +561,7 @@ where
 /// read the temperature measured by the external sensor
 //  - the data sheet guarantees a precision of ±1°C
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [u8; 2]
 where
     Dm: esp_hal::DriverMode,
@@ -602,9 +575,29 @@ where
     read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
 }
 
+/// override the temperature measured by the external temperature sensor
+/// (see section 6.8 and 6.16 for details)
+/// - this setting can be used to test the lookup table or use a
+///   temperature measured by an independent sensor
+/// - requires the FORCE and PROG bit in the fan configuration register
+///
+/// The external diode temperature registers are updated normally with
+/// the measured temperature and compared against the THIGH and TCRIT
+/// limits but not used to determine the fan speed.
+///
+/// expected range: 0x00 (0°C) to 0x55 (85°C)
+pub fn set_external_temperature_override<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    value: u8,
+) where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsFrc as u8, value);
+}
+
 /// read the "low temperature" alerting limit
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 /// default: [0x00, 0x00] (0.0°C)
 pub fn get_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
@@ -623,7 +616,7 @@ where
 
 /// change the "low temperature" alerting limit
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 pub fn set_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
     bytes: [u8; 2],
@@ -639,7 +632,7 @@ pub fn set_external_temperature_low_limit<Dm>(
 
 /// read the "high temperature" alerting limit
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 /// default: [0x46, 0x00] (70.0°C)
 pub fn get_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
@@ -658,7 +651,7 @@ where
 
 /// change the "high temperature" alerting limit
 ///
-/// expected range: [0x00, 0x00] (0.0ºC) to [0x55, 0x00] (85.0ºC)
+/// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 pub fn set_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
     bytes: [u8; 2],
