@@ -1,8 +1,8 @@
 /*
-The conversion rate register defines the sampling rate for the internal and
-external temperature sensor.
+    The conversion rate register defines the sampling rate for the internal
+    and external temperature sensor.
 
-unit: samples per seconds
+    unit: samples per seconds
 */
 
 use crate::emc2101::hw;

@@ -1,24 +1,32 @@
-//
-// raw, low-level access (as implemented by hardware)
-//
+/*
+    raw, low-level access (as implemented by hardware)
+*/
 // TODO convert code from Python to Rust
 // TODO consider using async writes for I²C operations
 //      https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
 
 mod defaults;
 mod device_registers;
-mod i2c_helpers;
 
-use device_registers::DR;
-use i2c_helpers::{
+use crate::i2c_helpers::{
     read_multibyte_register_as_u8, read_register_as_u8, write_multibyte_register_as_u8,
     write_register_as_u8,
 };
+use device_registers::DR;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
 use crate::emc2101::hw::defaults::DEFAULTS;
+
+// ------------------------------------------------------------------------
+// constants
+// ------------------------------------------------------------------------
+
+// the device's I²C bus address is always 0x4C
+// you must use an I²C bus multiplexer (e.g. TCA9548A) to connect multiple
+// EMC2101's to the same I²C bus
+static DEVICE_ADDRESS: u8 = 0x4C;
 
 // ------------------------------------------------------------------------
 // hardware details
@@ -33,7 +41,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Mid as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Mid as u8)
 }
 
 /// read the product ID
@@ -46,7 +54,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Pid as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Pid as u8)
 }
 
 /// read the product's revision
@@ -58,7 +66,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Rev as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Rev as u8)
 }
 
 /// reset all R/W registers to their default values
@@ -69,7 +77,7 @@ where
     for data in DEFAULTS.iter() {
         let register = data[0];
         let default = data[1];
-        write_register_as_u8(i2c_bus, register, default);
+        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, register, default);
     }
 }
 
@@ -84,7 +92,7 @@ where
         let register = data[0];
         let default = data[1];
 
-        let value = read_register_as_u8(i2c_bus, register);
+        let value = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, register);
         if default != value {
             warn!("Currently stored and default value for register '{register:#04X}' do not match: {default:#04X} != {value:#04X}");
             is_ok = false;
@@ -103,7 +111,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Status as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Status as u8)
 }
 
 pub fn get_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -111,14 +119,14 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Scratch1 as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch1 as u8)
 }
 
 pub fn set_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
 where
     Dm: esp_hal::DriverMode,
 {
-    write_register_as_u8(i2c_bus, DR::Scratch1 as u8, value);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch1 as u8, value);
 }
 
 pub fn get_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
@@ -126,14 +134,14 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Scratch2 as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch2 as u8)
 }
 
 pub fn set_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
 where
     Dm: esp_hal::DriverMode,
 {
-    write_register_as_u8(i2c_bus, DR::Scratch2 as u8, value);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch2 as u8, value);
 }
 
 // ------------------------------------------------------------------------
@@ -148,7 +156,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Cfg as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Cfg as u8)
 }
 
 /// set the device's config register
@@ -159,7 +167,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    write_register_as_u8(i2c_bus, DR::Cfg as u8, byte);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Cfg as u8, byte);
 }
 
 //     def configure_spinup_behaviour(self, spinup_strength: SpinUpStrength, spinup_duration: SpinUpDuration, fast_mode: bool) -> bool:
@@ -206,7 +214,7 @@ where
         DR::TachLsb as u8, // low byte, must be read first!
         DR::TachMsb as u8, // high byte
     ];
-    let values = read_multibyte_register_as_u8(i2c_bus, adr);
+    let values = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
     debug!("tach (bytes): {0:#04X} {1:#04X}", values[0], values[1]);
 
     // implicit return
@@ -222,7 +230,7 @@ where
         DR::TachLoLsb as u8, // low byte, must be read first!
         DR::TachLoMsb as u8, // high byte
     ];
-    let values = read_multibyte_register_as_u8(i2c_bus, adr);
+    let values = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
 
     // implicit return
     u16::from_le_bytes(values)
@@ -240,7 +248,7 @@ where
         [DR::TachLsb as u8, lsb], // low byte
         [DR::TachMsb as u8, msb], // high byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, values);
+    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
 }
 
 /// read the fan config register
@@ -249,7 +257,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::FanCfg as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanCfg as u8)
 }
 
 /// change the fan config register
@@ -258,7 +266,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DR::FanCfg as u8, value_clamped);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanCfg as u8, value_clamped);
 }
 
 /// read the fan spin up behavior register
@@ -267,7 +275,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::FanSpinUp as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpinUp as u8)
 }
 
 /// change the fan spin up behavior register
@@ -276,7 +284,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DR::FanSpinUp as u8, value_clamped);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpinUp as u8, value_clamped);
 }
 
 /// read the fan speed register
@@ -290,7 +298,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::FanSpeed as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpeed as u8)
 }
 
 /// change the fan speed register
@@ -305,7 +313,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DR::FanSpeed as u8, value_clamped);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpeed as u8, value_clamped);
 }
 
 /// read the PWM frequency register
@@ -316,7 +324,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::PwmFrq as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8)
 }
 
 /// change the PWM frequency register
@@ -327,7 +335,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DR::PwmFrq as u8, value_clamped);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8, value_clamped);
 }
 
 /// read the PWM frequency divider register
@@ -338,7 +346,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::PwmFrqDiv as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrqDiv as u8)
 }
 
 /// change the PWM frequency divider register
@@ -348,7 +356,7 @@ pub fn set_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_,
 where
     Dm: esp_hal::DriverMode,
 {
-    write_register_as_u8(i2c_bus, DR::PwmFrq as u8, value);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8, value);
 }
 
 //     def enable_lookup_table(self) -> bool:
@@ -439,7 +447,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::ConvRate as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ConvRate as u8)
 }
 
 /// change the temperature conversion rate register
@@ -449,7 +457,7 @@ pub fn set_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, 
 where
     Dm: esp_hal::DriverMode,
 {
-    write_register_as_u8(i2c_bus, DR::ConvRate as u8, value);
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ConvRate as u8, value);
 }
 
 //     def get_temperature_conversion_rate(self) -> str:
@@ -492,7 +500,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::Its as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Its as u8)
 }
 
 /// read the "high temperature" alerting limit
@@ -506,7 +514,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DR::ItsHi as u8)
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ItsHi as u8)
 }
 
 /// set the "high temperature" alerting limit
@@ -520,7 +528,7 @@ where
     Dm: esp_hal::DriverMode,
 {
     if limit <= 85 {
-        write_register_as_u8(i2c_bus, DR::ItsHi as u8, limit);
+        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ItsHi as u8, limit);
         // implicit return
         true
     } else {
@@ -591,7 +599,7 @@ where
     ];
 
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, adr)
+    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
 }
 
 /// read the "low temperature" alerting limit
@@ -610,7 +618,7 @@ where
     ];
 
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, adr)
+    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
 }
 
 /// change the "low temperature" alerting limit
@@ -626,7 +634,7 @@ pub fn set_external_temperature_low_limit<Dm>(
         [DR::EtsLoMsb as u8, bytes[0]], // high byte
         [DR::EtsLoLsb as u8, bytes[1]], // low byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, values);
+    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
 }
 
 /// read the "high temperature" alerting limit
@@ -645,7 +653,7 @@ where
     ];
 
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, adr)
+    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
 }
 
 /// change the "high temperature" alerting limit
@@ -661,7 +669,7 @@ pub fn set_external_temperature_high_limit<Dm>(
         [DR::EtsHiMsb as u8, bytes[0]], // high byte
         [DR::EtsHiLsb as u8, bytes[1]], // low byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, values);
+    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
 }
 
 /// trigger a temperature conversion ('one shot')
@@ -675,7 +683,7 @@ where
     // (the data value is irrelevant and ignored)
 
     // implicit return
-    write_register_as_u8(i2c_bus, DR::OneShot as u8, 0x00)
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::OneShot as u8, 0x00)
 }
 
 //     def force_temperature(self, temperature: float):
