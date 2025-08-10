@@ -59,21 +59,166 @@ where
 // temperature measurements - external temperature sensor (diode)
 // ------------------------------------------------------------------------
 
-/// read the temperature measured by the external sensor (in °C)
-/// - the data sheet guarantees a precision of ±1°C
-/// - expected range: 0.00ºC to 85.00ºC
-pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> f32
+//     def configure_ets(self, ets_config: ExternalTemperatureSensorConfig) -> bool:
+//         """
+//         configure diode_ideality_factor and beta_compensation_factor of
+//         the external temperature sensor
+//         """
+//         dif = ets_config.diode_ideality_factor
+//         bcf = ets_config.beta_compensation_factor
+//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
+//             dev_status = bh.read_register(0x02)
+//             if not dev_status & 0b0000_0100:
+//                 LH.debug("The diode fault bit is clear.")
+//                 bh.write_register(0x17, dif)
+//                 bh.write_register(0x18, bcf)
+//                 return True
+//             else:
+//                 LH.error("The diode fault bit is set: Sensor is faulty or missing.")
+//                 return False
+
+//     def get_ets_state(self) -> ExternalSensorStatus:
+//         # The status register 0x02 has a diode fault bit but that bit is
+//         # set only if there is an open circuit between DP-DN.
+//         # (It is NOT set if there is a short circuit between DP-DN.)
+//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
+//             msb = bh.read_register(0x01)  # high byte, must be read first!
+//             lsb = bh.read_register(0x10)  # low byte
+//         if msb != 0b0111_1111:
+//             return ExternalSensorStatus.OK
+//         else:
+//             if lsb == 0b0000_0000:
+//                 return ExternalSensorStatus.FAULT1
+//             elif lsb == 0b1110_0000:
+//                 return ExternalSensorStatus.FAULT2
+//             else:
+//                 raise RuntimeError(f"unexpected external sensor state (msb: 0x{msb:02X} lsb:0x{lsb:02X})")
+
+//     def has_ets(self) -> bool:
+//         # The EMC2101 has a fault bit in the status register (0x02) but
+//         # that bit is set only if there is an open circuit between DP-DN
+//         # or if it's shorted to VDD. The bit is not set if there is a
+//         # short circuit between DP-DN or to ground.
+//         # -> read the temperature MSB instead
+//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
+//             return bh.read_register(0x01) != 0b0111_1111
+
+pub enum BetaCompensationMode {
+    Automatic,
+    Manual,
+    Disabled,
+}
+
+/// Please note:
+/// - The mode must be set to 'Disabled' when using a thermal terminal
+///   diode or a diode-connected transistor (e.g. 2N3904 / 2N3906).
+/// - In modes 'Automatic' and 'Disabled' the factor's value is ignored.
+///
+/// See data sheet section 5.5 for details.
+pub struct BetaCompensation {
+    pub mode: BetaCompensationMode,
+    pub factor: u8,
+}
+
+/// read the external sensor's beta compensation factor
+pub fn get_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> BetaCompensation
 where
     Dm: esp_hal::DriverMode,
 {
-    // TODO check if in 'standby' or 'continuous conversion' mode and act accordingly
-    info!("Trigger a temperature conversion.");
-    hw::trigger_one_shot(i2c_bus);
+    let byte = hw::get_ets_bcf(i2c_bus);
+
+    // implicit return
+    match byte.clamp(0x00, 0x08) {
+        0x08 => BetaCompensation {
+            mode: BetaCompensationMode::Automatic,
+            factor: 0b0000_0000,
+        },
+        0x07 => BetaCompensation {
+            mode: BetaCompensationMode::Disabled,
+            factor: 0b0000_0000,
+        },
+        _ => BetaCompensation {
+            mode: BetaCompensationMode::Manual,
+            factor: byte & 0b0000_0111,
+        },
+    }
+}
+
+/// change the external sensor's beta compensation factor
+pub fn set_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, bcf: BetaCompensation)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let byte = match bcf.mode {
+        BetaCompensationMode::Automatic => 0x08,
+        BetaCompensationMode::Disabled => 0x07,
+        BetaCompensationMode::Manual => bcf.factor.clamp(0x00, 0x06),
+    };
+
+    hw::set_ets_bcf(i2c_bus, byte);
+}
+
+/// read the external sensor's diode ideality factor
+/// - the value represents a specific ideality factor
+/// - expected range: 0x08 to 0x37
+///
+/// (see data sheet section 6.12 for details)
+pub fn get_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    hw::get_ets_dif(i2c_bus)
+}
+
+/// change the external sensor's diode ideality factor
+/// - the value represents a specific ideality factor
+/// - expected range: 0x08 to 0x37
+/// - the provided value is clamped to this range
+///
+/// (see data sheet section 6.12 for details)
+pub fn set_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let value_clamped = value.clamp(0x08, 0x37);
+    hw::set_ets_dif(i2c_bus, value_clamped);
+
+    // wait a little bit to ensure the temperature measurement register was
+    // updated using the newly set DIF value
+    esp_hal::delay::Delay::new().delay_millis(100u32);
+}
+
+/// read the temperature measured by the external sensor (in °C)
+/// - the data sheet guarantees a precision of ±1°C
+///
+/// expected range: -64.0 ≤ x ≤ 127.0°C
+pub fn get_external_temperature<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> (f32, ExternalDiodeStatus)
+where
+    Dm: esp_hal::DriverMode,
+{
+    // need to check the configuration register to check if continuous
+    // conversion mode is enabled
+    let cfg = hw::get_config_register(i2c_bus);
+    if cfg & 0b0100_0000 != 0 {
+        // The device is in low power (standby) mode and the temperature
+        // measurement registers aren't continuously updated.
+        debug!("Standby mode. Need to trigger a temperature conversion.");
+        hw::trigger_one_shot(i2c_bus);
+
+        // wait a little bit for the measurement to be completed
+        //
+        // 32 conversions per second (31.25ms per conversion) is the highest
+        // possible sample rate in continuous conversion mode
+        esp_hal::delay::Delay::new().delay_millis(50u32);
+    }
 
     let bytes = hw::get_external_temperature(i2c_bus);
     debug!("get_external_temperature():");
-    debug!("  MSB: {0:#04X}", bytes[1]);
-    debug!("  LSB: {0:#010b}", bytes[1]);
+    debug!("  MSB: {0:#04X}", bytes.0);
+    debug!("  LSB: {0:#010b}", bytes.1);
 
     // TODO validate result
 
@@ -83,7 +228,7 @@ where
 
 /// read the "low temperature" alerting limit in °C
 ///
-/// expected range: 0.0 ≤ x ≤ 85.0°C
+/// expected range: -64.0 ≤ x ≤ 127.0°C
 pub fn get_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> f32
@@ -93,11 +238,11 @@ where
     let bytes = hw::get_external_temperature_low_limit(i2c_bus);
 
     // implicit return
-    convert_bytes2temperature(bytes)
+    convert_bytes2temperature(bytes).0
 }
 
 /// change the "low temperature" alerting limit (in °C)
-/// - provided value will be clamped to allowed range (0.0 ≤ x ≤ 85.0°C)
+/// - provided value will be clamped to allowed range (0.0°C ≤ x ≤ 85.0°C)
 /// - the fractional part has limited precision and will be clamped to the
 ///   nearest available step.
 /// - The clamped value is returned to the caller.
@@ -116,12 +261,12 @@ where
     hw::set_external_temperature_low_limit(i2c_bus, bytes);
 
     // implicit return
-    convert_bytes2temperature(bytes)
+    convert_bytes2temperature(bytes).0
 }
 
 /// read the "high temperature" alerting limit (in °C)
 ///
-/// expected range: 0.0 ≤ x ≤ 85.0°C
+/// expected range: 0.0°C ≤ x ≤ 85.0°C
 pub fn get_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> f32
@@ -131,11 +276,11 @@ where
     let bytes = hw::get_external_temperature_high_limit(i2c_bus);
 
     // implicit return
-    convert_bytes2temperature(bytes)
+    convert_bytes2temperature(bytes).0
 }
 
 /// change the "high temperature" alerting limit (in °C)
-/// - provided value will be clamped to allowed range (0.0 ≤ x ≤ 85.0°C)
+/// - provided value will be clamped to allowed range (0.0°C ≤ x ≤ 85.0°C)
 /// - the fractional part has limited precision and will be clamped to the
 ///   nearest available step.
 /// - The clamped value is returned to the caller.
@@ -154,7 +299,7 @@ where
     hw::set_external_temperature_high_limit(i2c_bus, bytes);
 
     // implicit return
-    convert_bytes2temperature(bytes)
+    convert_bytes2temperature(bytes).0
 }
 
 // ------------------------------------------------------------------------
@@ -162,58 +307,61 @@ where
 // ------------------------------------------------------------------------
 // convert between a temperature value (f32) and its internal
 // representation (msb, lsb)
-//
-// the internal representation has limited granularity,
-// representable fractions are: 0.15, 0.25, 0.40, 0.50, 0.65, 0.75, 0.90
+// - expected range: -64.0°C ≤ x ≤ 127.75°C
+// - the internal representation has limited granularity,
+//   external temperatures are graduated in 0.125°C steps
+
+pub enum ExternalDiodeStatus {
+    Operational,
+    OpenCircuit,
+    ShortCircuit,
+}
 
 /// convert the provided temperature from internal value to float
-/// e.g.: 0x0D + 0b1110_000 -> 13.9 (13 + 0.50 + 0.25 + 0.15)
-pub fn convert_bytes2temperature(bytes: [u8; 2]) -> f32 {
-    let msb = bytes[0];
-    let lsb = bytes[1];
+/// e.g.: [0x0D, 0b1110_000] -> 13.875 (13 + 7*0.125)
+pub fn convert_bytes2temperature(bytes: (u8, u8)) -> (f32, ExternalDiodeStatus) {
+    let msb = bytes.0 as i8;
+    let lsb = bytes.1;
 
-    let mut temp = msb as f32;
-    if (lsb & 0b1000_0000) != 0 {
-        temp += 0.50;
+    // test for external sensor error (data sheet section 5.5.1)
+    //   (0x7F, 0x00) -> open circuit
+    //   (0x7F, 0xE0) -> short circuit
+    // Warning: (0x7F, 0x00) could be an actual measurement (127.0°C)
+    // TODO find out if 127.125°C .. 127.750°C are allowed values
+    //      according to the data sheet all measured values exceeding
+    //      127.750°C are clamped to 127.750°C which would imply the
+    //      answer is yes
+    if msb == 0x7F {
+        if lsb == 0b0000_0000 {
+            return (f32::NAN, ExternalDiodeStatus::OpenCircuit);
+        } else if lsb == 0b1110_0000 {
+            return (f32::NAN, ExternalDiodeStatus::ShortCircuit);
+        }
     }
-    if (lsb & 0b0100_0000) != 0 {
-        temp += 0.25;
-    }
-    if (lsb & 0b0010_0000) != 0 {
-        temp += 0.15;
-    }
+
+    let temp = msb as f32 + ((lsb >> 5) as f32 * 0.125);
+    debug!("convert_bytes2temperature(): [{msb:#04X}, {lsb:#04X}] => {temp:.3}°C");
 
     // implicit return
-    temp
+    (temp, ExternalDiodeStatus::Operational)
 }
 
 /// convert the provided temperature from float to internal value
-/// e.g.: 13.95= 0x0D (13) + 0b1110_000 (0.5 + 0.25 + 0.1)
+/// e.g.: 13.875 (13 + 7*0.125) -> [0x0D, 0b1110_000]
 ///
-/// the internal value has limited granularity,
-/// any remaining fraction is lost
-pub fn convert_temperature2bytes(value: f32) -> [u8; 2] {
-    let msb = value as u8;
-    let mut lsb = 0x00;
+/// the internal representation has limited granularity,
+/// temperatures are graduated in 0.125°C steps
+pub fn convert_temperature2bytes(value: f32) -> (u8, u8) {
+    let value_clamped = value.clamp(-64.0, 127.75);
 
-    let mut fraction = value % 1.0;
-    // use slightly lower values to allow rounding, e.g.
-    // - "0.45" should round up to 0.5 instead of down to 0.4 (0.25+0.15)
-    // - using '> 0.44' instead of '>= 0.45' because the latter
-    //   rounded 84.45 down to 84.40 for some reason
-    // TODO validate the rounding logic and test for edge cases
-    if fraction > 0.44 {
-        lsb |= 0b1000_0000;
-        fraction -= 0.5;
-    }
-    if fraction > 0.19 {
-        lsb |= 0b0100_0000;
-        fraction -= 0.25;
-    }
-    if fraction > 0.07 {
-        lsb |= 0b0010_0000;
-    }
+    let msb = value_clamped as i8;
+    let lsb = ((value_clamped % 1.0 / 0.125) as u8) << 5;
 
     // implicit return
-    [msb, lsb]
+    if msb == 0x75 && lsb == 0b0000_0000 {
+        // avoid this value (indicating 'diode fault: open circuit')
+        (msb as u8, 0b0010_0000)
+    } else {
+        (msb as u8, lsb)
+    }
 }

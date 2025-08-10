@@ -558,11 +558,45 @@ where
 //         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
 //             return bh.read_register(0x01) != 0b0111_1111
 
+/// read the external sensor's beta compensation factor
+pub fn get_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsBcf as u8)
+}
+
+/// change the external sensor's beta compensation factor
+pub fn set_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsBcf as u8, byte);
+}
+
+/// read the external sensor's diode ideality factor
+pub fn get_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsDif as u8)
+}
+
+/// change the external sensor's diode ideality factor
+pub fn set_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsDif as u8, byte);
+}
+
 /// read the temperature measured by the external sensor
 //  - the data sheet guarantees a precision of ±1°C
 ///
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
-pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [u8; 2]
+pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> (u8, u8)
 where
     Dm: esp_hal::DriverMode,
 {
@@ -571,8 +605,10 @@ where
         DR::EtsLsb as u8, // low byte
     ];
 
+    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
+    (msb, lsb)
 }
 
 /// override the temperature measured by the external temperature sensor
@@ -601,7 +637,7 @@ pub fn set_external_temperature_override<Dm>(
 /// default: [0x00, 0x00] (0.0°C)
 pub fn get_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> [u8; 2]
+) -> (u8, u8)
 where
     Dm: esp_hal::DriverMode,
 {
@@ -610,8 +646,10 @@ where
         DR::EtsLoLsb as u8, // low byte
     ];
 
+    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
+    (msb, lsb)
 }
 
 /// change the "low temperature" alerting limit
@@ -619,13 +657,13 @@ where
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 pub fn set_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    bytes: [u8; 2],
+    bytes: (u8, u8),
 ) where
     Dm: esp_hal::DriverMode,
 {
     let values = [
-        [DR::EtsLoMsb as u8, bytes[0]], // high byte
-        [DR::EtsLoLsb as u8, bytes[1]], // low byte
+        [DR::EtsLoMsb as u8, bytes.0], // high byte
+        [DR::EtsLoLsb as u8, bytes.1], // low byte
     ];
     write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
 }
@@ -636,7 +674,7 @@ pub fn set_external_temperature_low_limit<Dm>(
 /// default: [0x46, 0x00] (70.0°C)
 pub fn get_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> [u8; 2]
+) -> (u8, u8)
 where
     Dm: esp_hal::DriverMode,
 {
@@ -645,8 +683,10 @@ where
         DR::EtsHiLsb as u8, // low byte
     ];
 
+    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+
     // implicit return
-    read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr)
+    (msb, lsb)
 }
 
 /// change the "high temperature" alerting limit
@@ -654,13 +694,13 @@ where
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 pub fn set_external_temperature_high_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    bytes: [u8; 2],
+    bytes: (u8, u8),
 ) where
     Dm: esp_hal::DriverMode,
 {
     let values = [
-        [DR::EtsHiMsb as u8, bytes[0]], // high byte
-        [DR::EtsHiLsb as u8, bytes[1]], // low byte
+        [DR::EtsHiMsb as u8, bytes.0], // high byte
+        [DR::EtsHiLsb as u8, bytes.1], // low byte
     ];
     write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
 }
