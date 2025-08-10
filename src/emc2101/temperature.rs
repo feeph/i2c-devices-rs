@@ -59,50 +59,6 @@ where
 // temperature measurements - external temperature sensor (diode)
 // ------------------------------------------------------------------------
 
-//     def configure_ets(self, ets_config: ExternalTemperatureSensorConfig) -> bool:
-//         """
-//         configure diode_ideality_factor and beta_compensation_factor of
-//         the external temperature sensor
-//         """
-//         dif = ets_config.diode_ideality_factor
-//         bcf = ets_config.beta_compensation_factor
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             dev_status = bh.read_register(0x02)
-//             if not dev_status & 0b0000_0100:
-//                 LH.debug("The diode fault bit is clear.")
-//                 bh.write_register(0x17, dif)
-//                 bh.write_register(0x18, bcf)
-//                 return True
-//             else:
-//                 LH.error("The diode fault bit is set: Sensor is faulty or missing.")
-//                 return False
-
-//     def get_ets_state(self) -> ExternalSensorStatus:
-//         # The status register 0x02 has a diode fault bit but that bit is
-//         # set only if there is an open circuit between DP-DN.
-//         # (It is NOT set if there is a short circuit between DP-DN.)
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             msb = bh.read_register(0x01)  # high byte, must be read first!
-//             lsb = bh.read_register(0x10)  # low byte
-//         if msb != 0b0111_1111:
-//             return ExternalSensorStatus.OK
-//         else:
-//             if lsb == 0b0000_0000:
-//                 return ExternalSensorStatus.FAULT1
-//             elif lsb == 0b1110_0000:
-//                 return ExternalSensorStatus.FAULT2
-//             else:
-//                 raise RuntimeError(f"unexpected external sensor state (msb: 0x{msb:02X} lsb:0x{lsb:02X})")
-
-//     def has_ets(self) -> bool:
-//         # The EMC2101 has a fault bit in the status register (0x02) but
-//         # that bit is set only if there is an open circuit between DP-DN
-//         # or if it's shorted to VDD. The bit is not set if there is a
-//         # short circuit between DP-DN or to ground.
-//         # -> read the temperature MSB instead
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             return bh.read_register(0x01) != 0b0111_1111
-
 pub enum BetaCompensationMode {
     Automatic,
     Manual,
