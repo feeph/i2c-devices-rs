@@ -189,10 +189,41 @@ where
     esp_hal::delay::Delay::new().delay_millis(100u32);
 }
 
+/// read the external sensor's critical temperature threshold and hysteresis
+/// - expected range: 0°C ≤ x ≤ 85.0°C
+/// - default: 85°C threshold, 10°C hysteresis
+///
+/// (see data sheet section 6.12 for details)
+pub fn get_ets_critical_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> (u8, u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let threshold = hw::get_ets_tcrit_threshold(i2c_bus);
+    let hysteresis = hw::get_ets_tcrit_hysteresis(i2c_bus);
+
+    // implicit return
+    (threshold, hysteresis)
+}
+
+/// change the external sensor's critical temperature threshold and hysteresis
+/// - expected range: 0°C ≤ x ≤ 85.0°C
+/// - default: 85°C threshold, 10°C hysteresis
+///
+/// (see data sheet section 6.12 for details)
+pub fn set_ets_critical_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, tcrit: (u8, u8))
+where
+    Dm: esp_hal::DriverMode,
+{
+    let threshold_clamped = tcrit.0.clamp(0, 85);
+    let hysteresis_clamped = tcrit.1.clamp(0, 85);
+    hw::set_ets_tcrit_threshold(i2c_bus, threshold_clamped);
+    hw::set_ets_tcrit_hysteresis(i2c_bus, hysteresis_clamped);
+}
+
 /// read the temperature measured by the external sensor (in °C)
 /// - the data sheet guarantees a precision of ±1°C
 ///
-/// expected range: -64.0 ≤ x ≤ 127.0°C
+/// expected range: -64.0°C ≤ x ≤ 127.0°C
 pub fn get_external_temperature<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> (f32, ExternalDiodeStatus)
@@ -228,7 +259,7 @@ where
 
 /// read the "low temperature" alerting limit in °C
 ///
-/// expected range: -64.0 ≤ x ≤ 127.0°C
+/// expected range: -64.0°C ≤ x ≤ 127.0°C
 pub fn get_external_temperature_low_limit<Dm>(
     i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
 ) -> f32

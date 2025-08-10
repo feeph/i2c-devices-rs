@@ -565,6 +565,40 @@ where
     write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsDif as u8, byte);
 }
 
+/// read the external sensor's critical temperature threshold
+pub fn get_ets_tcrit_threshold<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritTemp as u8)
+}
+
+/// change the external sensor's critical temperature threshold
+pub fn set_ets_tcrit_threshold<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritTemp as u8, byte);
+}
+
+/// read the external sensor's critical temperature hysteresis
+pub fn get_ets_tcrit_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritHyst as u8)
+}
+
+/// change the external sensor's critical temperature hysteresis
+pub fn set_ets_tcrit_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritHyst as u8, byte);
+}
+
 /// read the temperature measured by the external sensor
 /// - the data sheet guarantees a precision of ±1°C
 /// - negative values are represented using two's-complement
