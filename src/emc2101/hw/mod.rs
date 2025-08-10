@@ -727,68 +727,23 @@ where
     write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::OneShot as u8, 0x00)
 }
 
-//     def force_temperature(self, temperature: float):
-//         """
-//         force external sensor to read a specific temperature
+// ------------------------------------------------------------------------
+// lookup table
+// ------------------------------------------------------------------------
 
-//         (this is useful to debug the lookup table)
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             # write to register
-//             bh.write_register(0x0C, round(temperature))
-//             # force chip take readings from register instead of sensor
-//             fan_config = bh.read_register(0x4A)
-//             bh.write_register(0x4A, fan_config | 0b0100_0000)
+/// read the lookup table hysteresis register
+pub fn get_lookup_table_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::LutHyst as u8)
+}
 
-//     def clear_temperature(self):
-//         """
-//         clear a previously forced temperature reading
-//         """
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             # stop reading from register
-//             fan_config = bh.read_register(0x4A)
-//             bh.write_register(0x4A, fan_config & 0b1011_1111)
-//             # reset register to default state
-//             bh.write_register(0x0C, 0x00)
-
-//     # ---------------------------------------------------------------------
-//     # convenience functions
-//     # ---------------------------------------------------------------------
-
-//     def read_fancfg_register(self) -> int:
-//         # described in datasheet section 6.16 "Fan Configuration Register"
-//         # 0b00000000
-//         #         ^^-- tachometer input mode
-//         #        ^---- clock frequency override
-//         #       ^----- clock select
-//         #      ^------ polarity (0 = 100->0, 1 = 0->100)
-//         #     ^------- configure lookup table (0 = on, 1 = off)
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             return bh.read_register(0x4A)
-
-//     def write_fancfg_register(self, value: int):
-//         # described in datasheet section 6.16 "Fan Configuration Register"
-//         # 0b00000000
-//         #         ^^-- tachometer input mode
-//         #        ^---- clock frequency override
-//         #       ^----- clock select
-//         #      ^------ polarity (0 = 100->0, 1 = 0->100)
-//         #     ^------- configure lookup table (0 = on, 1 = off)
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             bh.write_register(0x4A, value & 0xFF)
-
-//     def _uses_tacho_mode(self) -> bool:
-//         with BurstHandler(i2c_bus=self._i2c_bus, i2c_adr=self._i2c_adr) as bh:
-//             status_register = bh.read_register(0x03)
-//         return bool(status_register & 0b0000_0100)
-
-// def _convert_rpm2tach(rpm: int) -> tuple[int, int]:
-//     # due to the way the conversion works the RPM can never
-//     # be less than 82
-//     if rpm < 82:
-//         raise ValueError("RPM can't be lower than 82")
-//     tach = int(5_400_000 / rpm)
-//     tach = 4096
-//     msb = (tach & 0xFF00) >> 8
-//     lsb = tach & 0x00FF
-//     return (msb, lsb)
+/// change the lookup table hysteresis register
+pub fn set_lookup_table_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::LutHyst as u8, byte);
+}

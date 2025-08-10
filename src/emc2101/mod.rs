@@ -11,6 +11,7 @@ mod config;
 mod conversion_rate;
 mod fan;
 mod hardware_details;
+mod lut;
 mod scratch_register;
 mod temperature;
 
@@ -18,5 +19,6 @@ pub use config::*;
 pub use conversion_rate::*;
 pub use fan::*;
 pub use hardware_details::*;
+pub use lut::*;
 pub use scratch_register::*;
 pub use temperature::*;
