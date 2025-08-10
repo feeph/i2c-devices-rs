@@ -25,6 +25,11 @@ jobs:
       - name: identify changed files
         id: changed-files
         uses: tj-actions/changed-files@v46
+        with:
+          # release-please creates double-newlines which would be flagged
+          # by markdownlint; the easiest fix is to ignore the file entirely
+          files_ignore: |
+            CHANGELOG.md
       # https://github.com/actions-rust-lang/setup-rust-toolchain
       - name: install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
