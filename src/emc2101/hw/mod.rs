@@ -510,6 +510,23 @@ where
     }
 }
 
+/// read the alert mask
+pub fn get_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AlrtMsk as u8)
+}
+
+/// change the alert mask
+pub fn set_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AlrtMsk as u8, byte);
+}
+
 // ------------------------------------------------------------------------
 // temperature measurements - external temperature sensor
 // ------------------------------------------------------------------------

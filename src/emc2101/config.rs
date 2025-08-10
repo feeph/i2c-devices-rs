@@ -99,6 +99,63 @@ where
     hw::set_config_register(i2c_bus, byte);
 }
 
+pub struct AlertMask {
+    // internal diode
+    pub int_mask: bool,
+    // external diode
+    pub hi_mask: bool,
+    pub lo_mask: bool,
+    pub tcrit_mask: bool,
+    // fan
+    pub tach_mask: bool,
+}
+
+/// read the alert mask
+///
+/// (see data sheet section 6.11 for details)
+pub fn get_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> AlertMask
+where
+    Dm: esp_hal::DriverMode,
+{
+    let byte = hw::get_alert_mask(i2c_bus);
+
+    // implicit return
+    AlertMask {
+        int_mask: byte & 0b0100_0000 != 0,
+        hi_mask: byte & 0b0001_0000 != 0,
+        lo_mask: byte & 0b0000_1000 != 0,
+        tcrit_mask: byte & 0b0000_0010 != 0,
+        tach_mask: byte & 0b0000_0001 != 0,
+    }
+}
+
+/// change the alert mask
+///
+/// (see data sheet section 6.11 for details)
+pub fn set_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, am: AlertMask)
+where
+    Dm: esp_hal::DriverMode,
+{
+    let mut byte = 0b1010_0100; // always set
+    if am.int_mask {
+        byte |= 0b0100_0000;
+    }
+    if am.hi_mask {
+        byte |= 0b0001_0000;
+    }
+    if am.lo_mask {
+        byte |= 0b0000_1000;
+    }
+    if am.tcrit_mask {
+        byte |= 0b0000_0010;
+    }
+    if am.tach_mask {
+        byte |= 0b0000_0001;
+    }
+
+    hw::set_alert_mask(i2c_bus, byte);
+}
+
 pub struct SpinUpBehavior {
     pub fast_mode: bool,
     pub strength: SpinUpStrength,
