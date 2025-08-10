@@ -333,6 +333,70 @@ where
     convert_bytes2temperature(bytes).0
 }
 
+pub enum AlertFilterMode {
+    Disabled = 0b0000_0000,
+    Level1 = 0b0000_0010,
+    Level2 = 0b0000_0100,
+    Level3 = 0b0000_0110,
+}
+
+pub enum AlertPinMode {
+    Interrupt = 0b0000_0000,
+    Comparator = 0b0000_0001,
+}
+
+pub struct AveragingFilter {
+    pub filter_mode: AlertFilterMode,
+    pub pin_mode: AlertPinMode,
+}
+
+/// get the level of digital averaging used for the external diode
+/// temperature measurements
+pub fn get_ets_averaging_filter<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+) -> AveragingFilter
+where
+    Dm: esp_hal::DriverMode,
+{
+    let bytes = hw::get_ets_averaging_filter(i2c_bus);
+
+    let fm = match bytes & 0b0000_0110 {
+        0b0000_0000 => AlertFilterMode::Disabled,
+        0b0000_0010 => AlertFilterMode::Level1,
+        0b0000_0100 => AlertFilterMode::Level2,
+        0b0000_0110 => AlertFilterMode::Level3,
+        // no other value can occur
+        _ => panic!("Internal error: Check bit mask."),
+    };
+    let pm = match bytes & 0b0000_0001 {
+        0b0000_0000 => AlertPinMode::Interrupt,
+        0b0000_0001 => AlertPinMode::Comparator,
+        // no other value can occur
+        _ => panic!("Internal error: Check bit mask."),
+    };
+
+    // implicit return
+    AveragingFilter {
+        filter_mode: fm,
+        pin_mode: pm,
+    }
+}
+
+/// set the level of digital averaging used for the external diode
+/// temperature measurements
+pub fn set_ets_averaging_filter<Dm>(
+    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
+    af: AveragingFilter,
+) where
+    Dm: esp_hal::DriverMode,
+{
+    let mut bytes = 0x00;
+    bytes += af.filter_mode as u8;
+    bytes += af.pin_mode as u8;
+
+    hw::set_ets_averaging_filter(i2c_bus, bytes);
+}
+
 // ------------------------------------------------------------------------
 // temperature <-> [msb, lsb]
 // ------------------------------------------------------------------------

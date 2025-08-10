@@ -727,6 +727,29 @@ where
     write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::OneShot as u8, 0x00)
 }
 
+/// get the level of digital averaging used for the external diode
+/// temperature measurements
+///
+/// (see data sheet section 6.23 for details)
+pub fn get_ets_averaging_filter<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+where
+    Dm: esp_hal::DriverMode,
+{
+    // implicit return
+    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AvgFlt as u8)
+}
+
+/// set the level of digital averaging used for the external diode
+/// temperature measurements
+///
+/// (see data sheet section 6.23 for details)
+pub fn set_ets_averaging_filter<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+where
+    Dm: esp_hal::DriverMode,
+{
+    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AvgFlt as u8, byte);
+}
+
 // ------------------------------------------------------------------------
 // lookup table
 // ------------------------------------------------------------------------
