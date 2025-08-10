@@ -1,0 +1,9 @@
+# Custom Dictionary Words
+ACZL
+Anson
+EEPROM
+Espressif
+ovrd
+SMSC
+tacho
+tcrit

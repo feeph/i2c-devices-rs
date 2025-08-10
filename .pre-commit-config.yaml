@@ -1,0 +1,109 @@
+---
+# this repository uses the pre-commit framework
+# documentation can be found at https://pre-commit.com/
+#
+# perform once after cloning the repository:
+#  pre-commit install
+#
+# if you want to trigger pre-commit manually:
+#  pre-commit run
+#  pre-commit run --all-files
+#
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - post-commit
+  - pre-push
+
+default_stages:
+  - pre-commit
+  - pre-push
+
+# https://pre-commit.com/#overriding-language-version
+default_language_version:
+    # required for markdownlint-cli2
+    node: lts
+
+repos:
+  # -----------------------------------------------------------------------
+  # stage: pre-commit and pre-push
+  # -----------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+        args: [--assume-in-merge]
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  # https://github.com/DavidAnson/markdownlint-cli2?tab=readme-ov-file#pre-commit
+  # markdownlint-cli2 can be unhappy about the OS's provided node version
+  # may need to use markdownlint-cli2-docker instead of markdownlint-cli2
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+    - id: markdownlint-cli2
+  # https://github.com/doublify/pre-commit-rust
+  - repo: https://github.com/doublify/pre-commit-rust
+    rev: v1.0
+    hooks:
+      - id: fmt
+        name: cargo fmt
+        args: [ "--verbose", "--" ]
+      - id: cargo-check
+        name: cargo check
+      - id: clippy
+        name: cargo clippy
+  # https://gitleaks.io/
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.27.2  # Specify the desired version of Gitleaks
+    hooks:
+      - id: gitleaks
+  # -----------------------------------------------------------------------
+  # stage: commit-msg
+  # -----------------------------------------------------------------------
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.8.3
+    hooks:
+      - id: commitizen
+  # -----------------------------------------------------------------------
+  # stage: post-commit
+  # -----------------------------------------------------------------------
+  # !! post-commit can't prevent the commit from happening !!
+  #
+  # At this point we can only complain that the commit wasn't signed
+  # properly and provide a warning that something isn't right and remind
+  # the user to go back and fix this specific commit.
+  #
+  # (We rely on the 'pre-push' stage to prevent pushing of unsigned commits.)
+  - repo: local
+    hooks:
+      - id: commit-signed
+        name: Verify commit is signed
+        stages:
+            - post-commit
+        always_run: true
+        language: system
+        entry: git
+        args: [ "verify-commit", "HEAD" ]
+  # -----------------------------------------------------------------------
+  # stage: pre-push
+  # -----------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: signed-commits
+        name: Verify signature
+        language: script
+        entry: scripts/verify_commits-are-signed
+        args: [ "$PRE_COMMIT_FROM_REF", "$PRE_COMMIT_TO_REF" ]
+        stages:
+            - pre-push
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.8.3
+    hooks:
+      - id: commitizen-branch
+        stages:
+          - pre-push

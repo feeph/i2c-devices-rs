@@ -1,0 +1,27 @@
+---
+#
+# release-please GitHub Action
+# <https://github.com/googleapis/release-please-action>
+#
+# PAT: https://github.com/googleapis/release-please-action#github-credentials
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+name: release-please
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json

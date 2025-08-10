@@ -1,0 +1,26 @@
+---
+#
+# config file for markdownlint
+#
+# https://www.npmjs.com/package/markdownlint
+# https://github.com/DavidAnson/markdownlint/blob/v0.32.1/schema/.markdownlint.yaml
+
+# Default state for all rules
+default: true
+
+# MD013/line-length: Line length
+# https://github.com/DavidAnson/markdownlint/blob/v0.32.1/doc/md013.md
+MD013:
+  # raise acceptable line length from 80 to 120
+  line_length: 120
+  heading_line_length: 80
+  code_block_line_length: 80
+  code_blocks: true
+  tables: false
+  headings: true
+  strict: false
+  stern: false
+
+# MD034/no-bare-urls: Bare URL used
+# https://github.com/DavidAnson/markdownlint/blob/v0.32.1/doc/md034.md
+MD034: false

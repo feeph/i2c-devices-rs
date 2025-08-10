@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# The pre-commit framework uses this script to verify all commits in this
+# branch are signed before pushing the branch to GitHub.
+#
+# It provides the variables $PRE_COMMIT_FROM_REF and $PRE_COMMIT_TO_REF.
+# These values contain commit ids and are exactly what we need.
+
+set -e
+set -u
+
+has_unsigned=n
+for commit in `git log --oneline $PRE_COMMIT_FROM_REF..$PRE_COMMIT_TO_REF|awk '{print $1}'` ; do
+    if ! git verify-commit $commit 2>/dev/null ; then
+        echo "Commit $commit is not signed!"
+        has_unsigned=y
+    fi
+done
+
+if [ $has_unsigned == 'n' ] ; then
+    echo "I: All commits are signed. Good!"
+    exit 0
+else
+    echo "E: Found unsigned commits. Please fix!" >&2
+    exit 1
+fi
