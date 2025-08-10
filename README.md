@@ -18,7 +18,7 @@ Rust library for various I²C devices.
 | ads1x1x  | analog-to-digital converter         | ADS1013, ADS1013, ADS1015, ADS1113, ADS1113, ADS1115 | stub          |
 | aht20    | temperature & humidity sensor       | AHT20                                                | stub          |
 | at24c0xd | Serial EEPROM                       | AT24C01D, AT24C02D                                   | stub          |
-| emc2101  | temperature sensor & fan controller | EMC2101, EMC2101-R                                   | wip           |
+| emc2101  | temperature sensor & fan controller | EMC2101, EMC2101-R                                   | usable        |
 | tca953x  | I/O Expander                        | TCA9536, TCA9537                                     | stub          |
 | tca9548a | I²C bus multiplexer                 | TCA9548A                                             | stub          |
 
@@ -26,7 +26,8 @@ support levels:
 
 - stub: Don't expect anything.
 - wip: Work in progress. Some functionality exists.
-- usable: The code is considered functional and in a usable state.
+- usable: The code is in a usable state but the interface may still change.
+- stable: The code's implementation and the interface has stabilized.
 - maintenance: The code is in maintenance mode, no additional features will be added.
 - deprecated: The code is considered deprecated and scheduled for removal.
 
