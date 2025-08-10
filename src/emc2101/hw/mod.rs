@@ -770,3 +770,40 @@ where
 {
     write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::LutHyst as u8, byte);
 }
+
+/// read the lookup table registers
+///
+/// (see data sheet section 6.22 for details)
+pub fn get_lookup_table<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [(u8, u8); 8]
+where
+    Dm: esp_hal::DriverMode,
+{
+    let mut lut = [(0x00, 0x00); 8];
+
+    // convert the tuple pairs into consecutive read requests
+    let adr = DR::LutBase as u8;
+    for (i, value) in lut.iter_mut().enumerate() {
+        let offset = (i as u8) * 2; // 0, 2, 4, .. 14
+        value.0 = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset);
+        value.1 = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset + 1);
+    }
+
+    // implicit return
+    lut
+}
+
+/// change the lookup table registers
+///
+/// (see data sheet section 6.22 for details)
+pub fn set_lookup_table<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, lut: [(u8, u8); 8])
+where
+    Dm: esp_hal::DriverMode,
+{
+    // convert consecutive read requests into the tuple pairs
+    let adr = DR::LutBase as u8;
+    for (i, value) in lut.iter().enumerate() {
+        let offset = (i as u8) * 2; // 0, 2, 4, .. 14
+        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset, value.0);
+        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset + 1, value.1);
+    }
+}
