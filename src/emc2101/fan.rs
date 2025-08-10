@@ -101,10 +101,10 @@ static RPM_MIN: u32 = (TACH_DIV / u16::MAX as u32) + 1;
 /// convert RPM value into tach reading
 pub fn convert_rpm2tach(rpm: u32) -> u16 {
     let rpm_clamped = rpm.clamp(RPM_MIN, u32::MAX);
-    info!("rpm:  {rpm} (clamped: {rpm_clamped})");
+    debug!("rpm:  {rpm} (clamped: {rpm_clamped})");
 
     let tach = (TACH_DIV / rpm_clamped) as u16;
-    info!("tach: {tach}");
+    debug!("tach: {tach}");
 
     // implicit return
     tach // 0..65_535
@@ -115,10 +115,10 @@ pub fn convert_rpm2tach(rpm: u32) -> u16 {
 /// (the tach reading must not be zero)
 pub fn convert_tach2rpm(tach: u16) -> u32 {
     let tach_clamped = tach.clamp(1, u16::MAX);
-    info!("tach: {tach} (clamped: {tach_clamped})");
+    debug!("tach: {tach} (clamped: {tach_clamped})");
 
     let rpm = TACH_DIV / tach_clamped as u32;
-    info!("rpm:  {rpm}");
+    debug!("rpm:  {rpm}");
 
     // implicit return
     rpm // 83..5_400_000
