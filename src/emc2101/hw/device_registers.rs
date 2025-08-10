@@ -3,8 +3,6 @@
 // (described in section 5 of the data sheet)
 //
 
-// TODO remove this pragma once the implementation is complete and all values are used
-#[allow(dead_code)]
 pub enum DR {
     Its = 0x00,       // internal sensor - temperature
     EtsMsb = 0x01,    // external diode - temperature (high byte)
