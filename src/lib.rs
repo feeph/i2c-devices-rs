@@ -10,6 +10,7 @@ pub mod ads1x1x;
 pub mod aht20;
 pub mod at24c0xd;
 pub mod emc2101;
+pub mod ht16k33;
 pub mod tca953x;
 pub mod tca9548a;
 

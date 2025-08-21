@@ -3,6 +3,7 @@ ACZL
 Anson
 EEPROM
 Espressif
+HOLTEK
 ovrd
 SMSC
 tacho
