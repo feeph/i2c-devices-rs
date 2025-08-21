@@ -1,5 +1,5 @@
 /*
-    map device ID to I²C and vice versa
+    map device ID to I²C address and vice versa
 */
 
 #[allow(unused_imports)]
