@@ -2,6 +2,8 @@
     common I²C-related functions
 */
 
+use core::result::Result::{Err, Ok};
+
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
@@ -10,9 +12,9 @@ use log::{debug, error, info, warn};
 /// - 10 bit addressing is not supported (1024 devices, 0..1024)
 ///
 /// returns an array of booleans (Vector is not available in 'no_std')
-pub fn scan_i2c_bus<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [bool; 128]
+pub fn scan_i2c_bus<Ibd>(ibd: &mut Ibd) -> [bool; 128]
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut d = [false; 128];
 
@@ -22,7 +24,7 @@ where
     for addr in 1..=127u8 {
         debug!("Scanning for I²C device at address {addr}.");
 
-        let res = i2c_bus.read(addr, &mut [0]);
+        let res = ibd.read_byte(addr);
         match res {
             Ok(_) => {
                 d[addr as usize] = true;

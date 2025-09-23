@@ -3,6 +3,7 @@
 */
 
 use crate::emc2101::hw;
+use core::panic;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -127,6 +128,20 @@ where
 /// - expected range: 0x08 to 0x37
 /// - the provided value is clamped to this range
 ///
+/// **CAUTION:** Do NOT read a temperature value immediately after setting
+///              a new diode ideality factor!
+///
+/// _You need to allow the chip to read the newly set value and update the
+/// temperature reading using the new DIF. A delay of 100 milliseconds is
+/// recommended, e.g.:_
+///
+/// ```
+/// // configure a new diode ideality factor
+/// set_ets_dif(ibd, 0x37)
+/// // wait for the new factor to be read and applied
+/// esp_hal::delay::Delay::new().delay_millis(100u32);
+/// ```
+///
 /// (see data sheet section 6.12 for details)
 pub fn set_ets_dif<Ibd>(ibd: &mut Ibd, value: u8)
 where
@@ -134,10 +149,6 @@ where
 {
     let value_clamped = value.clamp(0x08, 0x37);
     hw::set_ets_dif(ibd, value_clamped);
-
-    // wait a little bit to ensure the temperature measurement register was
-    // updated using the newly set DIF value
-    esp_hal::delay::Delay::new().delay_millis(100u32);
 }
 
 /// read the external sensor's critical temperature threshold and hysteresis
@@ -173,6 +184,8 @@ where
 
 /// read the temperature measured by the external sensor (in °C)
 /// - the data sheet guarantees a precision of ±1°C
+/// - this function will **sleep** for 50 milliseconds if the device is
+///   in standby mode and a temperature measurement must be requested
 ///
 /// expected range: -64.0°C ≤ x ≤ 127.0°C
 pub fn get_external_temperature<Ibd>(ibd: &mut Ibd) -> (f32, ExternalDiodeStatus)
@@ -192,7 +205,7 @@ where
         //
         // 32 conversions per second (31.25ms per conversion) is the highest
         // possible sample rate in continuous conversion mode
-        esp_hal::delay::Delay::new().delay_millis(50u32);
+        ibd.sleep_ms(50u32);
     }
 
     let bytes = hw::get_external_temperature(ibd);
