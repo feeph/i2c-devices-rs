@@ -14,7 +14,7 @@ MD013:
   # raise acceptable line length from 80 to 120
   line_length: 120
   heading_line_length: 80
-  code_block_line_length: 80
+  code_block_line_length: 120
   code_blocks: true
   tables: false
   headings: true
