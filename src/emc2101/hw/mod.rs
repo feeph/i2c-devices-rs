@@ -8,6 +8,8 @@
 mod defaults;
 mod device_registers;
 
+use core::cmp::Ord;
+use core::iter::Iterator;
 use device_registers::DR;
 
 #[allow(unused_imports)]

@@ -3,6 +3,7 @@
 */
 
 use crate::emc2101::hw;
+use core::cmp::Ord;
 use core::panic;
 
 #[allow(unused_imports)]

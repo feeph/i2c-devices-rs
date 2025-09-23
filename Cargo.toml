@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# esp-hal = { version = "=1.0.0-rc.0", default-features = false }
-esp-hal = { version = "=1.0.0-rc.0", features = ["esp32c6", "log-04", "unstable"] }
 log = { version = "0.4.27", default-features = false }
 
 [dev-dependencies]
-# esp-hal = { version = "=1.0.0-rc.0", features = ["esp32c6", "log-04", "unstable"] }
 log = "0.4.27"

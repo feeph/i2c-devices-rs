@@ -5,6 +5,8 @@
 */
 
 // TODO use device-agnostic trait to get rid of no-std
+// (we should try to use the same approach as serde/smoltp to support
+// 'std' and 'no_std')
 #![no_std]
 
 pub mod ads1x1x;

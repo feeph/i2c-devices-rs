@@ -3,6 +3,7 @@
 */
 
 use crate::emc2101::hw;
+use core::cmp::Ord;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};

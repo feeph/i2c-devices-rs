@@ -3,6 +3,8 @@
 */
 
 use crate::emc2101::hw;
+use core::cmp::Ord;
+use core::iter::Iterator;
 
 /// read the lookup table hysteresis register
 /// - expected range: 0°C ≤ x ≤ 31°C
