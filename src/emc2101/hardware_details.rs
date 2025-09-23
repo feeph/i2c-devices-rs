@@ -24,7 +24,7 @@ pub struct HardwareDetails {
 /// ```rust
 /// // <initialize an I²C bus object>
 ///
-/// let hwd = i2c_devices::emc2101::get_hardware_details(&mut i2c_bus0);
+/// let hwd = i2c_devices::emc2101::get_hardware_details(&mut ibd0);
 /// // concise, e.g. "SMSC EMC2101 (rev: 1)"
 /// info!("{0} {1} (rev: {2})", hwd.manufacturer, hwd.product, hwd.prv);
 /// // detailed
@@ -32,13 +32,13 @@ pub struct HardwareDetails {
 /// info!("Product:      {0} ({1:#04X})", hwd.product, hwd.pid);
 /// info!("Revision:     {0:#04X}", hwd.revision);
 /// ```
-pub fn get_hardware_details<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> HardwareDetails
+pub fn get_hardware_details<Ibd>(ibd: &mut Ibd) -> HardwareDetails
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let mid = hw::get_manufacturer_id(i2c_bus);
-    let pid = hw::get_product_id(i2c_bus);
-    let rev = hw::get_product_revision(i2c_bus);
+    let mid = hw::get_manufacturer_id(ibd);
+    let pid = hw::get_product_id(ibd);
+    let rev = hw::get_product_revision(ibd);
 
     let man = identify_manufacturer(mid);
     let prd = identify_product(pid);
@@ -68,11 +68,11 @@ pub struct StatusRegister {
     pub rpm_low: bool,     // tach count has exceeded the tach limit (RPM too low)
 }
 
-pub fn get_status_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> StatusRegister
+pub fn get_status_register<Ibd>(ibd: &mut Ibd) -> StatusRegister
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let cfg = hw::get_status_register(i2c_bus);
+    let cfg = hw::get_status_register(ibd);
 
     // implicit return
     StatusRegister {

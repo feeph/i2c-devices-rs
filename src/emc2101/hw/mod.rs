@@ -8,10 +8,6 @@
 mod defaults;
 mod device_registers;
 
-use crate::i2c_helpers::{
-    read_multibyte_register_as_u8, read_register_as_u8, write_multibyte_register_as_u8,
-    write_register_as_u8,
-};
 use device_registers::DR;
 
 #[allow(unused_imports)]
@@ -36,12 +32,12 @@ static DEVICE_ADDRESS: u8 = 0x4C;
 ///
 /// expected values:
 /// - 0x5d for SMSC
-pub fn get_manufacturer_id<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_manufacturer_id<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Mid as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Mid as u8)
 }
 
 /// read the product ID
@@ -49,50 +45,51 @@ where
 /// expected values:
 /// - 0x16 for EMC2101
 /// - 0x28 for EMC2101-R
-pub fn get_product_id<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_product_id<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Pid as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Pid as u8)
 }
 
 /// read the product's revision
 ///
 /// expected values:
 /// - 0x01
-pub fn get_product_revision<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_product_revision<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Rev as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Rev as u8)
 }
 
 /// reset all R/W registers to their default values
-pub fn reset_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+pub fn reset_device_registers<Ibd>(ibd: &mut Ibd)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
+    // TODO perform a single write transaction
     for data in DEFAULTS.iter() {
         let register = data[0];
         let default = data[1];
-        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, register, default);
+        ibd.write_register_as_byte(DEVICE_ADDRESS, register, default);
     }
 }
 
 /// validate that the R/W registers are set to their default values
 /// (this function can be used to verify the hardware is working)
-pub fn validate_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> bool
+pub fn validate_device_registers<Ibd>(ibd: &mut Ibd) -> bool
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut is_ok = true;
     for data in DEFAULTS.iter() {
         let register = data[0];
         let default = data[1];
 
-        let value = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, register);
+        let value = ibd.read_register_as_byte(DEVICE_ADDRESS, register);
         if default != value {
             warn!("Currently stored and default value for register '{register:#04X}' do not match: {default:#04X} != {value:#04X}");
             is_ok = false;
@@ -106,42 +103,42 @@ where
 /// get the device's status register
 ///
 /// default: 0b0000_0000
-pub fn get_status_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_status_register<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Status as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Status as u8)
 }
 
-pub fn get_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_scratch_register1<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch1 as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Scratch1 as u8)
 }
 
-pub fn set_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_scratch_register1<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch1 as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::Scratch1 as u8, value);
 }
 
-pub fn get_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_scratch_register2<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch2 as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Scratch2 as u8)
 }
 
-pub fn set_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_scratch_register2<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Scratch2 as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::Scratch2 as u8, value);
 }
 
 // ------------------------------------------------------------------------
@@ -151,23 +148,23 @@ where
 /// get the device's config register
 ///
 /// default: 0b0000_0000
-pub fn get_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_config_register<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Cfg as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Cfg as u8)
 }
 
 /// set the device's config register
 ///
 /// default: 0b0000_0000
-pub fn set_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_config_register<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Cfg as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::Cfg as u8, byte);
 }
 
 //     def configure_spinup_behaviour(self, spinup_strength: SpinUpStrength, spinup_duration: SpinUpDuration, fast_mode: bool) -> bool:
@@ -206,15 +203,15 @@ where
 /// - see section 6.14 of data sheet for details
 ///
 /// expected range: 512 (0x0200) .. 5104 (0x13F0)
-pub fn get_tach_reading<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u16
+pub fn get_tach_reading<Ibd>(ibd: &mut Ibd) -> u16
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let adr = [
         DR::TachLsb as u8, // low byte, must be read first!
         DR::TachMsb as u8, // high byte
     ];
-    let values = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+    let values = ibd.read_multibyte_register_as_u8(DEVICE_ADDRESS, adr);
     debug!("tach (bytes): {0:#04X} {1:#04X}", values[0], values[1]);
 
     // implicit return
@@ -222,24 +219,24 @@ where
 }
 
 /// read the fan's speed limit (expressed as "tach reading")
-pub fn get_tach_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u16
+pub fn get_tach_limit<Ibd>(ibd: &mut Ibd) -> u16
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let adr = [
         DR::TachLoLsb as u8, // low byte, must be read first!
         DR::TachLoMsb as u8, // high byte
     ];
-    let values = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+    let values = ibd.read_multibyte_register_as_u8(DEVICE_ADDRESS, adr);
 
     // implicit return
     u16::from_le_bytes(values)
 }
 
 /// change the fan's speed limit (expressed as "tach reading")
-pub fn set_tach_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, tach: u16)
+pub fn set_tach_limit<Ibd>(ibd: &mut Ibd, tach: u16)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let lsb = (tach & 0b1111_1111) as u8;
     let msb = ((tach >> 8) & 0b1111_1111) as u8;
@@ -248,43 +245,43 @@ where
         [DR::TachLsb as u8, lsb], // low byte
         [DR::TachMsb as u8, msb], // high byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
+    ibd.write_multibyte_register_as_u8(DEVICE_ADDRESS, values);
 }
 
 /// read the fan config register
-pub fn get_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_fan_config<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanCfg as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::FanCfg as u8)
 }
 
 /// change the fan config register
-pub fn set_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_fan_config<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanCfg as u8, value_clamped);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanCfg as u8, value_clamped);
 }
 
 /// read the fan spin up behavior register
-pub fn get_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_spin_up_behavior<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpinUp as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::FanSpinUp as u8)
 }
 
 /// change the fan spin up behavior register
-pub fn set_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_spin_up_behavior<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpinUp as u8, value_clamped);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanSpinUp as u8, value_clamped);
 }
 
 /// read the fan speed register
@@ -293,12 +290,12 @@ where
 /// - this value has no effect if a lookup table is used
 ///
 /// expected range: 0..63 (maximum value is PWM dependent)
-pub fn get_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_fan_speed<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpeed as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::FanSpeed as u8)
 }
 
 /// change the fan speed register
@@ -308,55 +305,55 @@ where
 ///
 /// expected range: 0..63 (maximum value is PWM dependent)
 // TODO clamp to minimum/maximum as defined by the fan configuration
-pub fn set_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_fan_speed<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::FanSpeed as u8, value_clamped);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanSpeed as u8, value_clamped);
 }
 
 /// read the PWM frequency register
 ///
 /// expected range: 0..32
-pub fn get_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_pwm_frequency<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::PwmFrq as u8)
 }
 
 /// change the PWM frequency register
 ///
 /// expected range: 0..32
-pub fn set_pwm_frequency<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_pwm_frequency<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0, 32);
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8, value_clamped);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::PwmFrq as u8, value_clamped);
 }
 
 /// read the PWM frequency divider register
 ///
 /// expected range: 0..256
-pub fn get_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_pwm_frequency_divider<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrqDiv as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::PwmFrqDiv as u8)
 }
 
 /// change the PWM frequency divider register
 ///
 /// expected range: 0..256
-pub fn set_pwm_frequency_divider<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_pwm_frequency_divider<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::PwmFrq as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::PwmFrq as u8, value);
 }
 
 //     def enable_lookup_table(self) -> bool:
@@ -442,22 +439,22 @@ where
 /// read the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn get_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_conversion_rate<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ConvRate as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::ConvRate as u8)
 }
 
 /// change the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn set_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_conversion_rate<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ConvRate as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::ConvRate as u8, value);
 }
 
 // ------------------------------------------------------------------------
@@ -468,40 +465,35 @@ where
 ///  - the data sheet guarantees a precision of ±2°C
 ///
 /// expected range: 0x00 (0°C) to 0x55 (85°C)
-pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_internal_temperature<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::Its as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::Its as u8)
 }
 
 /// read the "high temperature" alerting limit
 ///
 /// expected range: 0x00 (0.0°C) to 0x55 (85.0°C)
 /// default: 0x46 (70.0°C)
-pub fn get_internal_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> u8
+pub fn get_internal_temperature_high_limit<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ItsHi as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::ItsHi as u8)
 }
 
 /// set the "high temperature" alerting limit
 ///
 /// expected range: 0x00 (0.0°C) to 0x55 (85.0°C)
-pub fn set_internal_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    limit: u8,
-) -> bool
+pub fn set_internal_temperature_high_limit<Ibd>(ibd: &mut Ibd, limit: u8) -> bool
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     if limit <= 85 {
-        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::ItsHi as u8, limit);
+        ibd.write_register_as_byte(DEVICE_ADDRESS, DR::ItsHi as u8, limit);
         // implicit return
         true
     } else {
@@ -511,20 +503,20 @@ where
 }
 
 /// read the alert mask
-pub fn get_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_alert_mask<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AlrtMsk as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::AlrtMsk as u8)
 }
 
 /// change the alert mask
-pub fn set_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_alert_mask<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AlrtMsk as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::AlrtMsk as u8, byte);
 }
 
 // ------------------------------------------------------------------------
@@ -532,71 +524,71 @@ where
 // ------------------------------------------------------------------------
 
 /// read the external sensor's beta compensation factor
-pub fn get_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_bcf<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsBcf as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::EtsBcf as u8)
 }
 
 /// change the external sensor's beta compensation factor
-pub fn set_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_ets_bcf<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsBcf as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::EtsBcf as u8, byte);
 }
 
 /// read the external sensor's diode ideality factor
-pub fn get_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_dif<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsDif as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::EtsDif as u8)
 }
 
 /// change the external sensor's diode ideality factor
-pub fn set_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_ets_dif<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsDif as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::EtsDif as u8, byte);
 }
 
 /// read the external sensor's critical temperature threshold
-pub fn get_ets_tcrit_threshold<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_tcrit_threshold<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritTemp as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::CritTemp as u8)
 }
 
 /// change the external sensor's critical temperature threshold
-pub fn set_ets_tcrit_threshold<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_ets_tcrit_threshold<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritTemp as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::CritTemp as u8, byte);
 }
 
 /// read the external sensor's critical temperature hysteresis
-pub fn get_ets_tcrit_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_tcrit_hysteresis<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritHyst as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::CritHyst as u8)
 }
 
 /// change the external sensor's critical temperature hysteresis
-pub fn set_ets_tcrit_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_ets_tcrit_hysteresis<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::CritHyst as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::CritHyst as u8, byte);
 }
 
 /// read the temperature measured by the external sensor
@@ -604,16 +596,16 @@ where
 /// - negative values are represented using two's-complement
 ///
 /// expected range: [0xBF, 0x00] (-64.0°C) to [0x7F, 0xE0] (127.875°C)
-pub fn get_external_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> (u8, u8)
+pub fn get_external_temperature<Ibd>(ibd: &mut Ibd) -> (u8, u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let adr = [
         DR::EtsMsb as u8, // high byte, must be read first!
         DR::EtsLsb as u8, // low byte
     ];
 
-    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+    let [msb, lsb] = ibd.read_multibyte_register_as_u8(DEVICE_ADDRESS, adr);
 
     // implicit return
     (msb, lsb)
@@ -630,31 +622,27 @@ where
 /// limits but not used to determine the fan speed.
 ///
 /// expected range: 0x00 (0°C) to 0x55 (85°C)
-pub fn set_external_temperature_override<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: u8,
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_external_temperature_override<Ibd>(ibd: &mut Ibd, value: u8)
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::EtsFrc as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::EtsFrc as u8, value);
 }
 
 /// read the "low temperature" alerting limit
 ///
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 /// default: [0x00, 0x00] (0.0°C)
-pub fn get_external_temperature_low_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> (u8, u8)
+pub fn get_external_temperature_low_limit<Ibd>(ibd: &mut Ibd) -> (u8, u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let adr = [
         DR::EtsLoMsb as u8, // high byte, must be read first!
         DR::EtsLoLsb as u8, // low byte
     ];
 
-    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+    let [msb, lsb] = ibd.read_multibyte_register_as_u8(DEVICE_ADDRESS, adr);
 
     // implicit return
     (msb, lsb)
@@ -663,35 +651,31 @@ where
 /// change the "low temperature" alerting limit
 ///
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
-pub fn set_external_temperature_low_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    bytes: (u8, u8),
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_external_temperature_low_limit<Ibd>(ibd: &mut Ibd, bytes: (u8, u8))
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
     let values = [
         [DR::EtsLoMsb as u8, bytes.0], // high byte
         [DR::EtsLoLsb as u8, bytes.1], // low byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
+    ibd.write_multibyte_register_as_u8(DEVICE_ADDRESS, values);
 }
 
 /// read the "high temperature" alerting limit
 ///
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
 /// default: [0x46, 0x00] (70.0°C)
-pub fn get_external_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> (u8, u8)
+pub fn get_external_temperature_high_limit<Ibd>(ibd: &mut Ibd) -> (u8, u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let adr = [
         DR::EtsHiMsb as u8, // high byte, must be read first!
         DR::EtsHiLsb as u8, // low byte
     ];
 
-    let [msb, lsb] = read_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr);
+    let [msb, lsb] = ibd.read_multibyte_register_as_u8(DEVICE_ADDRESS, adr);
 
     // implicit return
     (msb, lsb)
@@ -700,54 +684,52 @@ where
 /// change the "high temperature" alerting limit
 ///
 /// expected range: [0x00, 0x00] (0.0°C) to [0x55, 0x00] (85.0°C)
-pub fn set_external_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    bytes: (u8, u8),
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_external_temperature_high_limit<Ibd>(ibd: &mut Ibd, bytes: (u8, u8))
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
     let values = [
         [DR::EtsHiMsb as u8, bytes.0], // high byte
         [DR::EtsHiLsb as u8, bytes.1], // low byte
     ];
-    write_multibyte_register_as_u8(i2c_bus, DEVICE_ADDRESS, values);
+    ibd.write_multibyte_register_as_u8(DEVICE_ADDRESS, values);
 }
 
 /// trigger a temperature conversion ('one shot')
 /// - device must be in standby mode
 /// - does nothing in 'continuous conversion' mode)
-pub fn trigger_one_shot<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+pub fn trigger_one_shot<Ibd>(ibd: &mut Ibd)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // the write operation is the important part
     // (the data value is irrelevant and ignored)
 
     // implicit return
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::OneShot as u8, 0x00)
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::OneShot as u8, 0x00)
 }
 
 /// get the level of digital averaging used for the external diode
 /// temperature measurements
 ///
 /// (see data sheet section 6.23 for details)
-pub fn get_ets_averaging_filter<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_averaging_filter<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AvgFlt as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::AvgFlt as u8)
 }
 
 /// set the level of digital averaging used for the external diode
 /// temperature measurements
 ///
 /// (see data sheet section 6.23 for details)
-pub fn set_ets_averaging_filter<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_ets_averaging_filter<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::AvgFlt as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::AvgFlt as u8, byte);
 }
 
 // ------------------------------------------------------------------------
@@ -755,28 +737,28 @@ where
 // ------------------------------------------------------------------------
 
 /// read the lookup table hysteresis register
-pub fn get_lookup_table_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_lookup_table_hysteresis<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    read_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::LutHyst as u8)
+    ibd.read_register_as_byte(DEVICE_ADDRESS, DR::LutHyst as u8)
 }
 
 /// change the lookup table hysteresis register
-pub fn set_lookup_table_hysteresis<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, byte: u8)
+pub fn set_lookup_table_hysteresis<Ibd>(ibd: &mut Ibd, byte: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    write_register_as_u8(i2c_bus, DEVICE_ADDRESS, DR::LutHyst as u8, byte);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::LutHyst as u8, byte);
 }
 
 /// read the lookup table registers
 ///
 /// (see data sheet section 6.22 for details)
-pub fn get_lookup_table<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> [(u8, u8); 8]
+pub fn get_lookup_table<Ibd>(ibd: &mut Ibd) -> [(u8, u8); 8]
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut lut = [(0x00, 0x00); 8];
 
@@ -784,8 +766,8 @@ where
     let adr = DR::LutBase as u8;
     for (i, value) in lut.iter_mut().enumerate() {
         let offset = (i as u8) * 2; // 0, 2, 4, .. 14
-        value.0 = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset);
-        value.1 = read_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset + 1);
+        value.0 = ibd.read_register_as_byte(DEVICE_ADDRESS, adr + offset);
+        value.1 = ibd.read_register_as_byte(DEVICE_ADDRESS, adr + offset + 1);
     }
 
     // implicit return
@@ -795,15 +777,15 @@ where
 /// change the lookup table registers
 ///
 /// (see data sheet section 6.22 for details)
-pub fn set_lookup_table<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, lut: [(u8, u8); 8])
+pub fn set_lookup_table<Ibd>(ibd: &mut Ibd, lut: [(u8, u8); 8])
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // convert consecutive read requests into the tuple pairs
     let adr = DR::LutBase as u8;
     for (i, value) in lut.iter().enumerate() {
         let offset = (i as u8) * 2; // 0, 2, 4, .. 14
-        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset, value.0);
-        write_register_as_u8(i2c_bus, DEVICE_ADDRESS, adr + offset + 1, value.1);
+        ibd.write_register_as_byte(DEVICE_ADDRESS, adr + offset, value.0);
+        ibd.write_register_as_byte(DEVICE_ADDRESS, adr + offset + 1, value.1);
     }
 }

@@ -25,12 +25,12 @@ pub enum ConversionRate {
 /// read the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn get_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> ConversionRate
+pub fn get_conversion_rate<Ibd>(ibd: &mut Ibd) -> ConversionRate
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    let value = hw::get_conversion_rate(i2c_bus);
+    let value = hw::get_conversion_rate(ibd);
     match value {
         0b0000 => ConversionRate::Sps1o16,
         0b0001 => ConversionRate::Sps1o8,
@@ -49,11 +49,9 @@ where
 /// change the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn set_conversion_rate<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: ConversionRate,
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_conversion_rate<Ibd>(ibd: &mut Ibd, value: ConversionRate)
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::set_conversion_rate(i2c_bus, value as u8);
+    hw::set_conversion_rate(ibd, value as u8);
 }

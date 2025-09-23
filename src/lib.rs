@@ -4,6 +4,7 @@
     This code is written by a Rust beginner. Please be gentle.
 */
 
+// TODO use device-agnostic trait to get rid of no-std
 #![no_std]
 
 pub mod ads1x1x;
@@ -14,5 +15,7 @@ pub mod tca953x;
 pub mod tca9548a;
 
 mod i2c_helpers;
+mod traits;
 
 pub use i2c_helpers::scan_i2c_bus;
+pub use traits::I2cBusDevice;
