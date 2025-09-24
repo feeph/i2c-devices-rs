@@ -4,10 +4,9 @@
     This code is written by a Rust beginner. Please be gentle.
 */
 
-// TODO use device-agnostic trait to get rid of no-std
-// (we should try to use the same approach as serde/smoltp to support
-// 'std' and 'no_std')
-#![no_std]
+// allow using i2c-devices-rs without depending on the standard library
+// ('no_std' is required for running on micro-controllers without an OS)
+#![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod ads1x1x;
 pub mod aht20;

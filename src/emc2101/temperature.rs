@@ -136,7 +136,7 @@ where
 /// temperature reading using the new DIF. A delay of 100 milliseconds is
 /// recommended, e.g.:_
 ///
-/// ```
+/// ```TEXT
 /// // configure a new diode ideality factor
 /// set_ets_dif(ibd, 0x37)
 /// // wait for the new factor to be read and applied

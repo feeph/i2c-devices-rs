@@ -21,7 +21,8 @@ pub struct HardwareDetails {
 /// read the hardware details
 ///
 /// usage:
-/// ```rust
+/// ```TEXT
+///
 /// // <initialize an I²C bus object>
 ///
 /// let hwd = i2c_devices::emc2101::get_hardware_details(&mut ibd0);
