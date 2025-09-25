@@ -60,6 +60,30 @@ fn set_fan_config() {
 }
 
 #[test]
+fn get_fan_speed() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_fan_speed(&mut vbd);
+    let expected = 0x00;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_fan_speed() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u8>();
+
+    // value is automatically clamped to range 0 ≤ x ≤ 32
+    sut::set_fan_speed(&mut vbd, val);
+
+    let computed = sut::get_fan_speed(&mut vbd);
+    let expected = val.clamp(0, 32);
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
 fn get_hw_pid_emc2101() {
     let mut vbd = create_emc2101();
 
@@ -99,6 +123,53 @@ fn get_hw_rev() {
     assert_eq!(computed, expected);
 }
 
+#[test]
+fn get_pwm_frequency() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_pwm_frequency(&mut vbd);
+    let expected = 0x17;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_pwm_frequency() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u8>();
+
+    // value is automatically clamped to range 0 ≤ x ≤ 32
+    sut::set_pwm_frequency(&mut vbd, val);
+
+    let computed = sut::get_pwm_frequency(&mut vbd);
+    let expected = val.clamp(0, 32);
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_pwm_frequency_divider() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_pwm_frequency_divider(&mut vbd);
+    let expected = 0x01;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_pwm_frequency_divider() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u8>();
+
+    // value is automatically clamped to range 0 ≤ x ≤ 32
+    sut::set_pwm_frequency_divider(&mut vbd, val);
+
+    let computed = sut::get_pwm_frequency_divider(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
 #[test]
 fn get_status_register() {
     let mut vbd = create_emc2101();
@@ -156,6 +227,29 @@ fn set_scratch_register2() {
 }
 
 #[test]
+fn get_spin_up_behavior() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_spin_up_behavior(&mut vbd);
+    let expected = 0x3F;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_spin_up_behavior() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u8>();
+
+    sut::set_spin_up_behavior(&mut vbd, val);
+
+    let computed = sut::get_spin_up_behavior(&mut vbd);
+    let expected = val.clamp(0, 32);
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
 fn get_tach_limit() {
     let mut vbd = create_emc2101();
 
@@ -174,6 +268,16 @@ fn set_tach_limit() {
 
     let computed = sut::get_tach_limit(&mut vbd);
     let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_tach_reading() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_tach_reading(&mut vbd);
+    let expected = 0xFFFF;
 
     assert_eq!(computed, expected);
 }
