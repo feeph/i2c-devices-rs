@@ -169,7 +169,7 @@ where
     ibd.write_register_as_byte(DEVICE_ADDRESS, DR::Cfg as u8, byte);
 }
 
-//     def configure_spinup_behaviour(self, spinup_strength: SpinUpStrength, spinup_duration: SpinUpDuration, fast_mode: bool) -> bool:
+//     def configure_spinup_behavior(self, spinup_strength: SpinUpStrength, spinup_duration: SpinUpDuration, fast_mode: bool) -> bool:
 //         """
 //         configure the spin-up behavior for the attached fan (duration and
 //         strength). This helps to ensure the fan has sufficient power
