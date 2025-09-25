@@ -39,10 +39,6 @@ jobs:
         id: git-origin-head
         run: |
           git remote set-head origin --auto
-      - name: install toolchain
-        id: install-toolchain
-        run: |
-          rustup component add --toolchain stable-x86_64-unknown-linux-gnu clippy
       # -------------------------------------------------------------------
       # validate
       # -------------------------------------------------------------------
