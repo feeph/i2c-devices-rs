@@ -25,7 +25,7 @@ pub static DEFAULTS: [[u8; 2]; 41] = [
     [0x4B, 0x3F], // Fan Spin-up
     [0x4C, 0x00], // Fan Setting
     [0x4D, 0x17], // PWM Frequency
-    [0x4E, 0x01], // PWM Frequency Divide
+    [0x4E, 0x01], // PWM Frequency Divider
     [0x4F, 0x04], // Lookup Table Hysteresis
     [0x50, 0x7F], // Lookup Table Temp Setting 1
     [0x51, 0x3F], // Lookup Table Fan Setting 1
