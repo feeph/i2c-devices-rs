@@ -10,6 +10,9 @@ name: verify pull request
 on:
   pull_request:
 
+permissions:
+  pull-requests: write
+
 jobs:
   lint:
     name: lint the code
@@ -52,6 +55,21 @@ jobs:
         run: |
           uv tool install pre-commit
           pre-commit run --show-diff-on-failure --color=always --hook-stage pre-push --files $CHANGED_FILES
-      - name: run unit tests
+      - name: run unit tests (with code coverage report)
         run: |
-          cargo test
+          set -o pipefail
+          cargo llvm-cov --fail-under-lines=30 | tee output.txt
+          echo "coverage_report=`cat output.txt`" >> $GITHUB_ENV
+      - name: add pull request comment
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment(
+              {
+                owner: context.repo.owner,
+                issue_number: context.issue.number,
+                repo: context.repo.repo,
+                body: process.env.coverage_report
+              }
+            )
