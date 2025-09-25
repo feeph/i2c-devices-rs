@@ -36,6 +36,29 @@ fn set_config_register() {
 }
 
 #[test]
+fn get_conversion_rate() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_conversion_rate(&mut vbd);
+    let expected = 0x08;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_conversion_rate() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u8>();
+
+    sut::set_conversion_rate(&mut vbd, val);
+
+    let computed = sut::get_conversion_rate(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
 fn get_fan_config() {
     let mut vbd = create_emc2101();
 
@@ -88,7 +111,7 @@ fn get_hw_pid_emc2101() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_product_id(&mut vbd);
-    let expected = 0x16u8;
+    let expected = 0x16;
 
     assert_eq!(computed, expected);
 }
@@ -98,7 +121,7 @@ fn get_hw_pid_emc2101r() {
     let mut vbd = create_emc2101r();
 
     let computed = sut::get_product_id(&mut vbd);
-    let expected = 0x28u8;
+    let expected = 0x28;
 
     assert_eq!(computed, expected);
 }
@@ -108,7 +131,7 @@ fn get_hw_mid_smsc() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_manufacturer_id(&mut vbd);
-    let expected = 0x5Du8;
+    let expected = 0x5D;
 
     assert_eq!(computed, expected);
 }
@@ -118,7 +141,43 @@ fn get_hw_rev() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_product_revision(&mut vbd);
-    let expected = 0x01u8;
+    let expected = 0x01;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_internal_temperature() {
+    let mut vbd = create_emc2101();
+    let val = (create_random_value::<u8>() / 3).clamp(0, 85);
+    vbd.registers[0x00].0 = val;
+
+    let computed = sut::get_internal_temperature(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_internal_temperature_high_limit() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_internal_temperature_high_limit(&mut vbd);
+    let expected = 0x46;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_internal_temperature_high_limit() {
+    let mut vbd = create_emc2101();
+    let val = (create_random_value::<u8>() / 3).clamp(0, 85);
+
+    // value is rejected if out of range (0 ≤ x ≤ 85)
+    sut::set_internal_temperature_high_limit(&mut vbd, val);
+
+    let computed = sut::get_internal_temperature_high_limit(&mut vbd);
+    let expected = val;
 
     assert_eq!(computed, expected);
 }
@@ -175,7 +234,7 @@ fn get_status_register() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_status_register(&mut vbd);
-    let expected = 0x00u8;
+    let expected = 0x00;
 
     assert_eq!(computed, expected);
 }
@@ -185,7 +244,7 @@ fn get_scratch_register1() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_scratch_register1(&mut vbd);
-    let expected = 0x00u8;
+    let expected = 0x00;
 
     assert_eq!(computed, expected);
 }
@@ -208,7 +267,7 @@ fn get_scratch_register2() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_scratch_register2(&mut vbd);
-    let expected = 0x00u8;
+    let expected = 0x00;
 
     assert_eq!(computed, expected);
 }
