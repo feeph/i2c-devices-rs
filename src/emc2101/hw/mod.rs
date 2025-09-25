@@ -244,8 +244,8 @@ where
     let msb = ((tach >> 8) & 0b1111_1111) as u8;
 
     let values = [
-        [DR::TachLsb as u8, lsb], // low byte
-        [DR::TachMsb as u8, msb], // high byte
+        [DR::TachLoLsb as u8, lsb], // low byte
+        [DR::TachLoMsb as u8, msb], // high byte
     ];
     ibd.write_multibyte_register_as_u8(DEVICE_ADDRESS, values);
 }
