@@ -60,17 +60,7 @@ jobs:
           set -o pipefail
           cargo install cargo-llvm-cov
           cargo llvm-cov --fail-under-lines=30 | tee output.txt
-          echo "coverage_report=`cat output.txt`" >> $GITHUB_ENV
-      - name: add pull request comment
-        uses: actions/github-script@v8
+      - name: PR comment with file
+        uses: thollander/actions-comment-pull-request@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment(
-              {
-                owner: context.repo.owner,
-                issue_number: context.issue.number,
-                repo: context.repo.repo,
-                body: process.env.coverage_report
-              }
-            )
+          file-path: output.txt
