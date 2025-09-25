@@ -251,6 +251,8 @@ where
 }
 
 /// read the fan config register
+///
+/// expected range: 0..31
 pub fn get_fan_config<Ibd>(ibd: &mut Ibd) -> u8
 where
     Ibd: crate::traits::I2cBusDevice,
@@ -260,15 +262,19 @@ where
 }
 
 /// change the fan config register
+///
+/// expected range: 0..31
 pub fn set_fan_config<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value_clamped = value.clamp(0, 32);
+    let value_clamped = value.clamp(0, 31);
     ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanCfg as u8, value_clamped);
 }
 
 /// read the fan spin up behavior register
+///
+/// expected range: 0..31
 pub fn get_spin_up_behavior<Ibd>(ibd: &mut Ibd) -> u8
 where
     Ibd: crate::traits::I2cBusDevice,
@@ -278,11 +284,13 @@ where
 }
 
 /// change the fan spin up behavior register
+///
+/// expected range: 0..31
 pub fn set_spin_up_behavior<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value_clamped = value.clamp(0, 32);
+    let value_clamped = value.clamp(0, 31);
     ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanSpinUp as u8, value_clamped);
 }
 
@@ -311,13 +319,13 @@ pub fn set_fan_speed<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value_clamped = value.clamp(0, 32);
+    let value_clamped = value.clamp(0, 31);
     ibd.write_register_as_byte(DEVICE_ADDRESS, DR::FanSpeed as u8, value_clamped);
 }
 
 /// read the PWM frequency register
 ///
-/// expected range: 0..32
+/// expected range: 0..31
 pub fn get_pwm_frequency<Ibd>(ibd: &mut Ibd) -> u8
 where
     Ibd: crate::traits::I2cBusDevice,
@@ -328,18 +336,18 @@ where
 
 /// change the PWM frequency register
 ///
-/// expected range: 0..32
+/// expected range: 0..31
 pub fn set_pwm_frequency<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value_clamped = value.clamp(0, 32);
+    let value_clamped = value.clamp(0, 31);
     ibd.write_register_as_byte(DEVICE_ADDRESS, DR::PwmFrq as u8, value_clamped);
 }
 
 /// read the PWM frequency divider register
 ///
-/// expected range: 0..256
+/// expected range: 0..255
 pub fn get_pwm_frequency_divider<Ibd>(ibd: &mut Ibd) -> u8
 where
     Ibd: crate::traits::I2cBusDevice,
@@ -350,7 +358,7 @@ where
 
 /// change the PWM frequency divider register
 ///
-/// expected range: 0..256
+/// expected range: 0..255
 pub fn set_pwm_frequency_divider<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,

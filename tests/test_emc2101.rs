@@ -50,11 +50,11 @@ fn set_fan_config() {
     let mut vbd = create_emc2101();
     let val = create_random_value::<u8>();
 
-    // value is automatically clamped to range 0 ≤ x ≤ 32
+    // value is automatically clamped to range 0 ≤ x ≤ 31
     sut::set_fan_config(&mut vbd, val);
 
     let computed = sut::get_fan_config(&mut vbd);
-    let expected = val.clamp(0, 32);
+    let expected = val.clamp(0, 31);
 
     assert_eq!(computed, expected);
 }
@@ -74,11 +74,11 @@ fn set_fan_speed() {
     let mut vbd = create_emc2101();
     let val = create_random_value::<u8>();
 
-    // value is automatically clamped to range 0 ≤ x ≤ 32
+    // value is automatically clamped to range 0 ≤ x ≤ 31
     sut::set_fan_speed(&mut vbd, val);
 
     let computed = sut::get_fan_speed(&mut vbd);
-    let expected = val.clamp(0, 32);
+    let expected = val.clamp(0, 31);
 
     assert_eq!(computed, expected);
 }
@@ -138,11 +138,11 @@ fn set_pwm_frequency() {
     let mut vbd = create_emc2101();
     let val = create_random_value::<u8>();
 
-    // value is automatically clamped to range 0 ≤ x ≤ 32
+    // value is automatically clamped to range 0 ≤ x ≤ 31
     sut::set_pwm_frequency(&mut vbd, val);
 
     let computed = sut::get_pwm_frequency(&mut vbd);
-    let expected = val.clamp(0, 32);
+    let expected = val.clamp(0, 31);
 
     assert_eq!(computed, expected);
 }
@@ -162,7 +162,7 @@ fn set_pwm_frequency_divider() {
     let mut vbd = create_emc2101();
     let val = create_random_value::<u8>();
 
-    // value is automatically clamped to range 0 ≤ x ≤ 32
+    // value is automatically clamped to range 0 ≤ x ≤ 31
     sut::set_pwm_frequency_divider(&mut vbd, val);
 
     let computed = sut::get_pwm_frequency_divider(&mut vbd);
@@ -244,7 +244,7 @@ fn set_spin_up_behavior() {
     sut::set_spin_up_behavior(&mut vbd, val);
 
     let computed = sut::get_spin_up_behavior(&mut vbd);
-    let expected = val.clamp(0, 32);
+    let expected = val.clamp(0, 31);
 
     assert_eq!(computed, expected);
 }
