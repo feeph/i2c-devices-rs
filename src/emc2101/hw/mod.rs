@@ -355,7 +355,7 @@ pub fn set_pwm_frequency_divider<Ibd>(ibd: &mut Ibd, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::PwmFrq as u8, value);
+    ibd.write_register_as_byte(DEVICE_ADDRESS, DR::PwmFrqDiv as u8, value);
 }
 
 //     def enable_lookup_table(self) -> bool:
