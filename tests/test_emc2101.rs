@@ -25,7 +25,7 @@ fn get_config_register() {
 #[test]
 fn set_config_register() {
     let mut vbd = create_emc2101();
-    let val = create_random_value();
+    let val = create_random_value::<u8>();
 
     sut::set_config_register(&mut vbd, val);
 
@@ -48,7 +48,7 @@ fn get_fan_config() {
 #[test]
 fn set_fan_config() {
     let mut vbd = create_emc2101();
-    let val = create_random_value();
+    let val = create_random_value::<u8>();
 
     // value is automatically clamped to range 0 ≤ x ≤ 32
     sut::set_fan_config(&mut vbd, val);
@@ -122,7 +122,7 @@ fn get_scratch_register1() {
 #[test]
 fn set_scratch_register1() {
     let mut vbd = create_emc2101();
-    let val = create_random_value();
+    let val = create_random_value::<u8>();
 
     sut::set_scratch_register1(&mut vbd, val);
 
@@ -145,11 +145,34 @@ fn get_scratch_register2() {
 #[test]
 fn set_scratch_register2() {
     let mut vbd = create_emc2101();
-    let val = create_random_value();
+    let val = create_random_value::<u8>();
 
     sut::set_scratch_register2(&mut vbd, val);
 
     let computed = sut::get_scratch_register2(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_tach_limit() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_tach_limit(&mut vbd);
+    let expected = 0xFFFF;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_tach_limit() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value::<u16>();
+
+    sut::set_tach_limit(&mut vbd, val);
+
+    let computed = sut::get_tach_limit(&mut vbd);
     let expected = val;
 
     assert_eq!(computed, expected);
@@ -161,6 +184,12 @@ fn create_emc2101() -> VirtualI2cBusDevice {
     let mut registers = [(0u8, false); 256];
 
     // set read-only registers
+    registers[0x00] = (0x00, false);
+    registers[0x01] = (0x00, false);
+    registers[0x02] = (0x00, false);
+    registers[0x10] = (0x00, false);
+    registers[0x46] = (0xFF, false);
+    registers[0x47] = (0xFF, false);
     registers[0xFD] = (0x16, false);
     registers[0xFE] = (0x5D, false);
     registers[0xFF] = (0x01, false);
@@ -195,8 +224,11 @@ fn create_emc2101r() -> VirtualI2cBusDevice {
     VirtualI2cBusDevice { registers }
 }
 
-fn create_random_value() -> u8 {
+fn create_random_value<T>() -> T
+where
+    rand::distr::StandardUniform: rand::distr::Distribution<T>,
+{
     let mut rng = rand::rng();
 
-    rng.random::<u8>()
+    rng.random::<T>()
 }

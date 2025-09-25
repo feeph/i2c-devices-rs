@@ -44,16 +44,32 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         }
     }
 
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _dr: [u8; N]) -> [u8; N] {
+    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
         validate_device_address(da);
 
-        panic!("function not implemented")
+        let mut rb = [0u8; N];
+
+        for (i, register) in dr.iter().enumerate() {
+            rb[i] = self.registers[*register as usize].0;
+        }
+
+        // implicit return
+        rb
     }
 
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _values: [[u8; 2]; N]) {
+    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         validate_device_address(da);
 
-        panic!("function not implemented")
+        for x in values.iter() {
+            let dr = x[0];
+            let dv = x[1];
+
+            if self.registers[dr as usize].1 {
+                self.registers[dr as usize].0 = dv;
+            } else {
+                panic!("attempted write to read-only register {dr:#02X}")
+            }
+        }
     }
 
     // some hardware functions require a little time to pass
