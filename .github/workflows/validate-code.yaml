@@ -58,6 +58,7 @@ jobs:
       - name: run unit tests (with code coverage report)
         run: |
           set -o pipefail
+          cargo install cargo-llvm-cov
           cargo llvm-cov --fail-under-lines=30 | tee output.txt
           echo "coverage_report=`cat output.txt`" >> $GITHUB_ENV
       - name: add pull request comment
