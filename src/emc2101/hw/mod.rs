@@ -5,7 +5,7 @@
 // TODO consider using async writes for I²C operations
 //      https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/esp32c6/esp_hal/i2c/master/index.html#usage
 
-mod defaults;
+pub mod defaults;
 mod device_registers;
 
 use core::cmp::Ord;
