@@ -34,10 +34,14 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         self.registers[dr as usize].0
     }
 
-    fn write_register_as_byte(&mut self, da: u8, _dr: u8, _byte: u8) {
+    fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
         validate_device_address(da);
 
-        panic!("function not implemented")
+        if self.registers[dr as usize].1 {
+            self.registers[dr as usize].0 = byte;
+        } else {
+            panic!("attempted write to read-only register {dr:#02X}")
+        }
     }
 
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _dr: [u8; N]) -> [u8; N] {

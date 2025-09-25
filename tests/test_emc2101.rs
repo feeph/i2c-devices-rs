@@ -6,12 +6,61 @@
 mod common;
 
 use common::VirtualI2cBusDevice;
+use rand::prelude::*;
+
 use i2c_devices::emc2101::hw as sut;
 
 // ------------------------------------------------------------------------
 
 #[test]
-fn hw_pid_emc2101() {
+fn get_config_register() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_config_register(&mut vbd);
+    let expected = 0b0000_0000;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_config_register() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value();
+
+    sut::set_config_register(&mut vbd, val);
+
+    let computed = sut::get_config_register(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_fan_config() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_fan_config(&mut vbd);
+    let expected = 0x20;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_fan_config() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value();
+
+    // value is automatically clamped to range 0 ≤ x ≤ 32
+    sut::set_fan_config(&mut vbd, val);
+
+    let computed = sut::get_fan_config(&mut vbd);
+    let expected = val.clamp(0, 32);
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_hw_pid_emc2101() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_product_id(&mut vbd);
@@ -21,7 +70,7 @@ fn hw_pid_emc2101() {
 }
 
 #[test]
-fn hw_pid_emc2101r() {
+fn get_hw_pid_emc2101r() {
     let mut vbd = create_emc2101r();
 
     let computed = sut::get_product_id(&mut vbd);
@@ -31,7 +80,7 @@ fn hw_pid_emc2101r() {
 }
 
 #[test]
-fn hw_mid_smsc() {
+fn get_hw_mid_smsc() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_manufacturer_id(&mut vbd);
@@ -41,11 +90,67 @@ fn hw_mid_smsc() {
 }
 
 #[test]
-fn hw_rev() {
+fn get_hw_rev() {
     let mut vbd = create_emc2101();
 
     let computed = sut::get_product_revision(&mut vbd);
     let expected = 0x01u8;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_status_register() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_status_register(&mut vbd);
+    let expected = 0x00u8;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_scratch_register1() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_scratch_register1(&mut vbd);
+    let expected = 0x00u8;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_scratch_register1() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value();
+
+    sut::set_scratch_register1(&mut vbd, val);
+
+    let computed = sut::get_scratch_register1(&mut vbd);
+    let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn get_scratch_register2() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::get_scratch_register2(&mut vbd);
+    let expected = 0x00u8;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_scratch_register2() {
+    let mut vbd = create_emc2101();
+    let val = create_random_value();
+
+    sut::set_scratch_register2(&mut vbd, val);
+
+    let computed = sut::get_scratch_register2(&mut vbd);
+    let expected = val;
 
     assert_eq!(computed, expected);
 }
@@ -88,4 +193,10 @@ fn create_emc2101r() -> VirtualI2cBusDevice {
     }
 
     VirtualI2cBusDevice { registers }
+}
+
+fn create_random_value() -> u8 {
+    let mut rng = rand::rng();
+
+    rng.random::<u8>()
 }
