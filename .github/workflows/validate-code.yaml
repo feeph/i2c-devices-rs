@@ -57,9 +57,12 @@ jobs:
           pre-commit run --show-diff-on-failure --color=always --hook-stage pre-push --files $CHANGED_FILES
       - name: run unit tests (with code coverage report)
         run: |
-          set -o pipefail
+          echo -e 'code coverage report:\n' > output.md
+          echo '```TEXT' > output.md
           cargo install cargo-llvm-cov
-          cargo llvm-cov --fail-under-lines=30 | tee output.txt
+          set -o pipefail
+          cargo llvm-cov --fail-under-lines=30 | tee -a output.md
+          echo '```' >> output.md
       - name: PR comment with file
         uses: thollander/actions-comment-pull-request@v3
         with:
