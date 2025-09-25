@@ -58,7 +58,7 @@ jobs:
       - name: run unit tests (with code coverage report)
         run: |
           echo -e 'code coverage report:\n' > output.md
-          echo '```TEXT' > output.md
+          echo '```TEXT' >> output.md
           cargo install cargo-llvm-cov
           set -o pipefail
           cargo llvm-cov --fail-under-lines=30 | tee -a output.md
