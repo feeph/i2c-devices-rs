@@ -94,12 +94,13 @@ fn main() -> ! {
     // use library
     // --------------------------------------------------------------------
 
+    // create an I²C bus device
     let mut ibd = I2cBusDevice {
         i2c_bus: &mut i2c_bus,
         timer,
     };
 
-    // ensure a consistent state
+    // use the I²C bus device to do something
     i2c_devices::emc2101::reset_device_registers(&mut ibd);
 
     // --------------------------------------------------------------------
@@ -128,10 +129,6 @@ where
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         let mut buf = [0, 1];
 
-        // TODO figure out how to read from the I²C bus on Raspberry Pico
-        //
-        // - 'i2c_bus.write_iter_read(address, bytes, buffer)' exists
-        // - 'i2c_bus.read()' does not exist but that may be due to the device trait?
         let res = self.i2c_bus.read(da, &mut buf);
         match res {
             Ok(_) => Ok(buf[0]),
@@ -165,9 +162,6 @@ where
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
         let mut rb = [0u8; N];
 
-        // it's a bit overkill to use a loop for two iterations but that way we
-        // avoid code duplication and it opens up the possibility of reading an
-        // arbitrary number of values
         for (i, register) in dr.iter().enumerate() {
             let mut v = [0; 1];
             match self.i2c_bus.write_read(da, &[*register], &mut v) {
