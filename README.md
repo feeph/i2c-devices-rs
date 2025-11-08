@@ -5,11 +5,8 @@ Rust library for various I²C devices.
 - [Supported devices](#supported-devices)
 - [Requirements](#requirements)
 - [Usage](#usage)
-  - [initialize the bus](#initialize-the-bus)
-  - [scan the bus for connected devices](#scan-the-bus-for-connected-devices)
-  - [use a device](#use-a-device)
-    - [augmented API (recommended)](#augmented-api-recommended)
-    - [low-level API](#low-level-api)
+  - [augmented API (recommended)](#augmented-api-recommended)
+  - [low-level API](#low-level-api)
 
 ## Supported devices
 
@@ -33,72 +30,20 @@ support levels:
 
 ## Requirements
 
-This code requires esp_hal (1.0.0-rc0) with feature 'unstable' enabled:
-
-```shell
-cargo add esp-hal@=1.0.0-rc.0 -F esp32c6,log-04,unstable
-```
-
-You MUST NOT use esp_hal (0.23.x) or esp32-hal!
-
-See https://developer.espressif.com/blog/2025/02/rust-esp-hal-beta for details.
-
-[2025-08-03] _Version 1.0.0-rc0 is the most recent release._
+Access to the I²C bus is hardware-specific. This code does not depend on
+any specific hardware abstraction layer (esp-hal, rp-hal or similar). This
+library provides the hardware-agnostic trait 'I2cBusDevice' which must be
+implemented by the calling code.
 
 ## Usage
 
-### initialize the bus
+Please check the provided examples how to implement the trait and use this
+library:
 
-This configuration assumes to run on an Espressif ESP32-C6.
+- [examples/esp32-c6/](examples/esp32-c6/) - Espressif32, using esp-hal
+- [examples/rp2040/](examples/rp2040) - Raspberry Pi Pico, using rp-hal
 
-Other options are:  ESP32, ESP32-C2, ESP32-C3, ESP32-H2, ESP32-S2, ESP32-S3.
-
-- Please check https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.0/
-  for instructions for these other supported devices.
-- Please check https://docs.espressif.com/projects/rust/ for an overview of
-  all esp_hal-related modules.
-
-```rust
-// use the same pins that would be used in ESP32-C6's "Low Power" mode
-// to make circuit layouts compatible with both modes
-let pin_sda = peripherals.GPIO6;
-let pin_scl = peripherals.GPIO7;
-
-// set the bus frequency
-// - I²C standard mode: 100kHz
-// - I²C fast mode:     400kHz
-let i2c_config = esp_hal::i2c::master::Config::default()
-    .with_frequency(esp_hal::time::Rate::from_khz(100));
-
-info!("Initialize I²C channel 0. (SCL: GPIO{}, SDA: GPIO{})", pin_scl.number(), pin_sda.number());
-let mut i2c_bus0 = esp_hal::i2c::master::I2c::new(peripherals.I2C0, i2c_config)
-    .unwrap()
-    .with_scl(pin_scl)
-    .with_sda(pin_sda);
-```
-
-### scan the bus for connected devices
-
-```rust
-info!("Scanning the I²C bus for devices.");
-let i2c_dev = i2c_devices::scan_i2c_bus(&mut i2c_bus0);
-
-let mut devices_found = false;
-for (addr, found) in i2c_dev.iter().enumerate() {
-    if addr > 0 && *found {
-        info!("Found an I²C device at address {:#04X}.", addr);
-        devices_found = true;
-    }
-}
-
-if !devices_found {
-    warn!("Unable to find any I²C devices connected to this bus!");
-}
-```
-
-### use a device
-
-#### augmented API (recommended)
+### augmented API (recommended)
 
 An augmented, higher-level API is provided for user convenience. This API
 parses and validates the provided data.
@@ -120,7 +65,7 @@ info!("  mask:        {}", cfg.mask);
 info!("  standby:     {}", cfg.standby);
 ```
 
-#### low-level API
+### low-level API
 
 Direct access to the hardware is possible using the low-level API. This API
 does not perform any parsing or validation. The device's data sheet is
