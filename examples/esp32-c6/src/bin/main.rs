@@ -3,10 +3,14 @@
 
     This application demonstrates how to talk to I²C devices with an ESP32-C6
     using this library and the embassy framework.
-*/
 
-// TODO update the example to use esp-hal v1.0.0-rc.0 instead of v1.0.0-beta.1
-// (using 1.0.0-rc.0 generates 4 errors, some details must have changed)
+    Use `esp-generate` to generate a new project:
+
+    ```BASH
+    esp-generate --chip esp32c6 hello_world
+    cargo add i2c_devices --no-default-features
+    ```
+*/
 
 #![no_std]
 #![no_main]
@@ -17,15 +21,13 @@
 )]
 
 use embassy_executor::Spawner;
+use embassy_time::{Duration, Timer};
+use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
+use esp_hal::timer::timg::TimerGroup;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
-
-#[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
-    loop {}
-}
 
 extern crate alloc;
 
@@ -33,8 +35,8 @@ extern crate alloc;
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
-#[esp_hal_embassy::main]
-async fn main(spawner: Spawner) {
+#[esp_rtos::main]
+async fn main(spawner: Spawner) -> ! {
     // --------------------------------------------------------------------
     // device-specific setup (using embassy)
     // --------------------------------------------------------------------
@@ -44,12 +46,19 @@ async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    esp_alloc::heap_allocator!(size: 72 * 1024);
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 65536);
 
-    let timer = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
-    esp_hal_embassy::init(timer.timer0);
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    let sw_interrupt =
+        esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_interrupt.software_interrupt0);
 
     info!("Embassy initialized!");
+
+    let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
+    let (mut _wifi_controller, _interfaces) =
+        esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
+            .expect("Failed to initialize Wi-Fi controller");
 
     // --------------------------------------------------------------------
     // configure I²C bus and timer
@@ -74,11 +83,19 @@ async fn main(spawner: Spawner) {
         .with_scl(pin_scl)
         .with_sda(pin_sda);
 
+    // TODO: Spawn some tasks
+    // let _ = spawner;
+
     // --------------------------------------------------------------------
     // spawn an embassy task and use the library
     // --------------------------------------------------------------------
 
     spawner.must_spawn(i2c_task(i2c_bus0));
+
+    loop {
+        info!("Hello world!");
+        Timer::after(Duration::from_secs(1)).await;
+    }
 }
 
 // ------------------------------------------------------------------------
