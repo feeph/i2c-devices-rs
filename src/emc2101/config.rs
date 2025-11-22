@@ -31,6 +31,7 @@ where
 /// register (0x4A)
 ///
 /// for an exhaustive description refer to the data sheet (section 6.5)
+#[derive(Debug, PartialEq)]
 pub struct ConfigRegister {
     // the comment describes what happens if the value is set to True
     pub mask: bool,        // disable ALERT/TACH when in interrupt mode
@@ -99,6 +100,7 @@ where
     hw::set_config_register(ibd, byte);
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AlertMask {
     // internal diode
     pub int_mask: bool,
@@ -156,12 +158,14 @@ where
     hw::set_alert_mask(ibd, byte);
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SpinUpBehavior {
     pub fast_mode: bool,
     pub strength: SpinUpStrength,
     pub duration: SpinUpDuration,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum SpinUpStrength {
     Bypass = 0b0000_0000,
     Half = 0b0000_1000,
@@ -169,6 +173,7 @@ pub enum SpinUpStrength {
     Full = 0b0001_1000,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum SpinUpDuration {
     Bypass = 0b0000_0000,
     Ms0050 = 0b0000_0001,
@@ -187,42 +192,31 @@ where
 {
     let value = hw::get_spin_up_behavior(ibd);
 
-    let mut fast_mode = false;
-    if (value & 0b0010_0000) != 0 {
-        fast_mode = true;
-    }
+    let fast_mode = match (value & 0b0010_0000) >> 5 {
+        0b1 => true,
+        0b0 => false,
+        _ => panic!("internal error - validate match condition"),
+    };
 
-    // slightly smelly code
-    let strength: SpinUpStrength;
-    if (value & 0b0001_1000) != 0 {
-        strength = SpinUpStrength::Full;
-    } else if (value & 0b0001_0000) != 0 {
-        strength = SpinUpStrength::ThreeQuarter;
-    } else if (value & 0b0000_1000) != 0 {
-        strength = SpinUpStrength::Half;
-    } else {
-        strength = SpinUpStrength::Bypass;
-    }
+    let strength = match (value & 0b0001_1000) >> 3 {
+        0b11 => SpinUpStrength::Full,
+        0b10 => SpinUpStrength::ThreeQuarter,
+        0b01 => SpinUpStrength::Half,
+        0b00 => SpinUpStrength::Bypass,
+        _ => panic!("internal error - validate match condition"),
+    };
 
-    // really smelly code
-    let duration: SpinUpDuration;
-    if (value & 0b0000_0111) != 0 {
-        duration = SpinUpDuration::Ms3200;
-    } else if (value & 0b0000_0110) != 0 {
-        duration = SpinUpDuration::Ms1600;
-    } else if (value & 0b0000_0101) != 0 {
-        duration = SpinUpDuration::Ms0800;
-    } else if (value & 0b0000_0100) != 0 {
-        duration = SpinUpDuration::Ms0400;
-    } else if (value & 0b0000_0011) != 0 {
-        duration = SpinUpDuration::Ms0200;
-    } else if (value & 0b0000_0010) != 0 {
-        duration = SpinUpDuration::Ms0100;
-    } else if (value & 0b0000_0001) != 0 {
-        duration = SpinUpDuration::Ms0050;
-    } else {
-        duration = SpinUpDuration::Bypass;
-    }
+    let duration = match value & 0b0000_0111 {
+        0b111 => SpinUpDuration::Ms3200,
+        0b110 => SpinUpDuration::Ms1600,
+        0b101 => SpinUpDuration::Ms0800,
+        0b100 => SpinUpDuration::Ms0400,
+        0b011 => SpinUpDuration::Ms0200,
+        0b010 => SpinUpDuration::Ms0100,
+        0b001 => SpinUpDuration::Ms0050,
+        0b000 => SpinUpDuration::Bypass,
+        _ => panic!("internal error - validate match condition"),
+    };
 
     // implicit return
     SpinUpBehavior {
@@ -249,6 +243,7 @@ where
 
 /// see data sheet (section 6.16) for details
 /// TODO improve this struct and make it self-documenting
+#[derive(Debug, PartialEq)]
 pub struct FanConfig {
     // bit 7 is unused
     pub force: bool,     // enable the external temperature force register
@@ -309,6 +304,7 @@ where
 // PWM related settings
 // ------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub struct PwmSettings {
     pub frequency: u8, // range: 0..32
     pub divider: u8,   // range: 0..256

@@ -8,6 +8,7 @@
 use crate::emc2101::hw;
 
 /// conversion rate (measured in 'samples per seconds')
+#[derive(Debug, PartialEq)]
 pub enum ConversionRate {
     Sps1o16 = 0b0000, // 1 sample every 16 seconds (1/16)
     Sps1o8 = 0b0001,  // 1 sample every 8 seconds (1/8)
@@ -30,17 +31,16 @@ where
     Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    let value = hw::get_conversion_rate(ibd);
-    match value {
+    match hw::get_conversion_rate(ibd) {
         0b0000 => ConversionRate::Sps1o16,
         0b0001 => ConversionRate::Sps1o8,
         0b0010 => ConversionRate::Sps1o4,
         0b0011 => ConversionRate::Sps1o2,
         0b0100 => ConversionRate::Sps1,
         0b0101 => ConversionRate::Sps2,
-        0b0110 => ConversionRate::Sps1o4,
-        0b0111 => ConversionRate::Sps1o8,
-        0b1000 => ConversionRate::Sps1o8,
+        0b0110 => ConversionRate::Sps4,
+        0b0111 => ConversionRate::Sps8,
+        0b1000 => ConversionRate::Sps16,
         // all remaining values map to 32 samples per second
         _ => ConversionRate::Sps32,
     }

@@ -10,6 +10,7 @@ static UNKNOWN: &str = "<unknown>";
 // hardware details
 // ------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub struct HardwareDetails {
     pub mid: u8,
     pub manufacturer: &'static str,
@@ -57,6 +58,7 @@ where
 /// a representation of the EMC2101's status register (0x02)
 ///
 /// for an exhaustive description refer to the data sheet (section 6.4)
+#[derive(Debug, PartialEq)]
 pub struct StatusRegister {
     // the comment describes what happens if the value is set to True
     pub busy: bool,        // ADC is converting

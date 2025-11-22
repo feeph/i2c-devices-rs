@@ -46,7 +46,9 @@ where
         // implicit return
         hw::set_internal_temperature_high_limit(ibd, value as u8)
     } else {
-        warn!("Provided value for internal temperature limit must be in range 0.0°C <= x <= 85°C!");
+        warn!(
+            "Provided value for internal temperature limit must be in range 0.0°C <= x <= 85.0°C!"
+        );
         // implicit return
         false
     }
@@ -56,6 +58,7 @@ where
 // temperature measurements - external temperature sensor (diode)
 // ------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub enum BetaCompensationMode {
     Automatic,
     Manual,
@@ -68,6 +71,7 @@ pub enum BetaCompensationMode {
 /// - In modes 'Automatic' and 'Disabled' the factor's value is ignored.
 ///
 /// See data sheet section 5.5 for details.
+#[derive(Debug, PartialEq)]
 pub struct BetaCompensation {
     pub mode: BetaCompensationMode,
     pub factor: u8,
@@ -220,6 +224,21 @@ where
     convert_bytes2temperature(bytes)
 }
 
+pub fn set_external_temperature_override<Ibd>(ibd: &mut Ibd, value: f32) -> bool
+where
+    Ibd: crate::traits::I2cBusDevice,
+{
+    if (0.0..=85.0).contains(&value) {
+        hw::set_external_temperature_override(ibd, value as u8);
+        // implicit return
+        true
+    } else {
+        warn!("Provided value for external temperature limit override must be in range 0.0°C <= x <= 85.0°C!");
+        // implicit return
+        false
+    }
+}
+
 /// read the "low temperature" alerting limit in °C
 ///
 /// expected range: -64.0°C ≤ x ≤ 127.0°C
@@ -286,6 +305,7 @@ where
     convert_bytes2temperature(bytes).0
 }
 
+#[derive(Debug, PartialEq)]
 pub enum AlertFilterMode {
     Disabled = 0b0000_0000,
     Level1 = 0b0000_0010,
@@ -293,11 +313,13 @@ pub enum AlertFilterMode {
     Level3 = 0b0000_0110,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum AlertPinMode {
     Interrupt = 0b0000_0000,
     Comparator = 0b0000_0001,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AveragingFilter {
     pub filter_mode: AlertFilterMode,
     pub pin_mode: AlertPinMode,
@@ -355,6 +377,7 @@ where
 // - the internal representation has limited granularity,
 //   external temperatures are graduated in 0.125°C steps
 
+#[derive(Debug, PartialEq)]
 pub enum ExternalDiodeStatus {
     Operational,
     OpenCircuit,
