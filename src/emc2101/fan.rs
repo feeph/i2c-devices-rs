@@ -3,6 +3,7 @@
 */
 
 use crate::emc2101::hw;
+use core::cmp::Ord;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -10,11 +11,11 @@ use log::{debug, error, info, warn};
 /// read the fan's current RPM
 ///
 /// expected range: 83 to 5_400_000
-pub fn get_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u32
+pub fn get_rpm<Ibd>(ibd: &mut Ibd) -> u32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let tach = hw::get_tach_reading(i2c_bus);
+    let tach = hw::get_tach_reading(ibd);
 
     convert_tach2rpm(tach)
 }
@@ -23,9 +24,9 @@ where
 /// - this value has no effect if a lookup table is used
 ///
 /// expected range: 0..100%
-pub fn get_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_fan_speed<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // TODO ensure the lookup table is disabled
     // TODO use a percentage as input value
@@ -34,7 +35,7 @@ where
     //      (may differ from requested value depending on granularity)
 
     // implicit return
-    hw::get_fan_speed(i2c_bus)
+    hw::get_fan_speed(ibd)
 }
 
 /// change the fan speed register
@@ -42,9 +43,9 @@ where
 /// - remember that the change won't instantly change the actual RPM!
 ///
 /// expected range: 0..100%
-pub fn set_fan_speed<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_fan_speed<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // TODO ensure the lookup table is disabled
     // TODO use a percentage as input value
@@ -53,7 +54,7 @@ where
     //      (may differ from requested value depending on granularity)
 
     let value_clamped = value.clamp(0, 32);
-    hw::set_fan_speed(i2c_bus, value_clamped);
+    hw::set_fan_speed(ibd, value_clamped);
 }
 
 /// read the fan's minimum RPM
@@ -62,11 +63,11 @@ where
 /// - (depending on the config register) the ALERT/TACH pin will be pulled high
 ///
 /// expected range: 83 to 5_400_000
-pub fn get_minimum_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u32
+pub fn get_minimum_rpm<Ibd>(ibd: &mut Ibd) -> u32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let tach = hw::get_tach_limit(i2c_bus);
+    let tach = hw::get_tach_limit(ibd);
 
     // implicit return
     convert_tach2rpm(tach)
@@ -78,12 +79,12 @@ where
 /// - (depending on the config register) the ALERT/TACH pin will be pulled high
 ///
 /// expected range: 83 to 5_400_000
-pub fn set_minimum_rpm<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, rpm: u32)
+pub fn set_minimum_rpm<Ibd>(ibd: &mut Ibd, rpm: u32)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let tach = convert_rpm2tach(rpm);
-    hw::set_tach_limit(i2c_bus, tach);
+    hw::set_tach_limit(ibd, tach);
 }
 
 // ------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+[package]
+name = "rp2040"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.5"
+embedded-hal = "1.0.0"
+embedded_hal_0_2 = { version = "0.2.5", package = "embedded-hal", features = ["unproven"] }
+i2c_devices = { version = "0.1.0", path = "../../", default-features = false }
+log = "0.4.28"
+panic-halt = "1.0.0"
+rp2040-boot2 = "0.3.0"
+rp2040-hal = { version = "0.11.0", features = ["binary-info", "critical-section-impl", "rt", "defmt"] }

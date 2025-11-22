@@ -8,20 +8,20 @@ use crate::emc2101::hw;
 use log::{debug, error, info, warn};
 
 /// reset the device register to their default values
-pub fn reset_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>)
+pub fn reset_device_registers<Ibd>(ibd: &mut Ibd)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::reset_device_registers(i2c_bus);
+    hw::reset_device_registers(ibd);
 }
 
 /// compare currently stored values to default values
 /// (use after reset_device_registers())
-pub fn validate_device_registers<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> bool
+pub fn validate_device_registers<Ibd>(ibd: &mut Ibd) -> bool
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::validate_device_registers(i2c_bus)
+    hw::validate_device_registers(ibd)
 }
 
 /// a representation of the EMC2101's config register (0x03)
@@ -31,6 +31,7 @@ where
 /// register (0x4A)
 ///
 /// for an exhaustive description refer to the data sheet (section 6.5)
+#[derive(Debug, PartialEq)]
 pub struct ConfigRegister {
     // the comment describes what happens if the value is set to True
     pub mask: bool,        // disable ALERT/TACH when in interrupt mode
@@ -45,11 +46,11 @@ pub struct ConfigRegister {
 
 /// <function not documented>
 // TODO document get_config_register()
-pub fn get_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> ConfigRegister
+pub fn get_config_register<Ibd>(ibd: &mut Ibd) -> ConfigRegister
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let cfg = hw::get_config_register(i2c_bus);
+    let cfg = hw::get_config_register(ibd);
 
     // implicit return
     ConfigRegister {
@@ -66,9 +67,9 @@ where
 
 /// <function not documented>
 // TODO document set_config_register()
-pub fn set_config_register<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, cr: ConfigRegister)
+pub fn set_config_register<Ibd>(ibd: &mut Ibd, cr: ConfigRegister)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut byte = 0u8;
     if cr.mask {
@@ -96,9 +97,10 @@ where
         byte |= 0b0000_0001;
     }
 
-    hw::set_config_register(i2c_bus, byte);
+    hw::set_config_register(ibd, byte);
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AlertMask {
     // internal diode
     pub int_mask: bool,
@@ -113,11 +115,11 @@ pub struct AlertMask {
 /// read the alert mask
 ///
 /// (see data sheet section 6.11 for details)
-pub fn get_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> AlertMask
+pub fn get_alert_mask<Ibd>(ibd: &mut Ibd) -> AlertMask
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let byte = hw::get_alert_mask(i2c_bus);
+    let byte = hw::get_alert_mask(ibd);
 
     // implicit return
     AlertMask {
@@ -132,9 +134,9 @@ where
 /// change the alert mask
 ///
 /// (see data sheet section 6.11 for details)
-pub fn set_alert_mask<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, am: AlertMask)
+pub fn set_alert_mask<Ibd>(ibd: &mut Ibd, am: AlertMask)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut byte = 0b1010_0100; // always set
     if am.int_mask {
@@ -153,15 +155,17 @@ where
         byte |= 0b0000_0001;
     }
 
-    hw::set_alert_mask(i2c_bus, byte);
+    hw::set_alert_mask(ibd, byte);
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SpinUpBehavior {
     pub fast_mode: bool,
     pub strength: SpinUpStrength,
     pub duration: SpinUpDuration,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum SpinUpStrength {
     Bypass = 0b0000_0000,
     Half = 0b0000_1000,
@@ -169,6 +173,7 @@ pub enum SpinUpStrength {
     Full = 0b0001_1000,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum SpinUpDuration {
     Bypass = 0b0000_0000,
     Ms0050 = 0b0000_0001,
@@ -181,48 +186,37 @@ pub enum SpinUpDuration {
 }
 
 /// read the fan spin up behavior
-pub fn get_spin_up_behavior<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> SpinUpBehavior
+pub fn get_spin_up_behavior<Ibd>(ibd: &mut Ibd) -> SpinUpBehavior
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let value = hw::get_spin_up_behavior(i2c_bus);
+    let value = hw::get_spin_up_behavior(ibd);
 
-    let mut fast_mode = false;
-    if (value & 0b0010_0000) != 0 {
-        fast_mode = true;
-    }
+    let fast_mode = match (value & 0b0010_0000) >> 5 {
+        0b1 => true,
+        0b0 => false,
+        _ => panic!("internal error - validate match condition"),
+    };
 
-    // slightly smelly code
-    let strength: SpinUpStrength;
-    if (value & 0b0001_1000) != 0 {
-        strength = SpinUpStrength::Full;
-    } else if (value & 0b0001_0000) != 0 {
-        strength = SpinUpStrength::ThreeQuarter;
-    } else if (value & 0b0000_1000) != 0 {
-        strength = SpinUpStrength::Half;
-    } else {
-        strength = SpinUpStrength::Bypass;
-    }
+    let strength = match (value & 0b0001_1000) >> 3 {
+        0b11 => SpinUpStrength::Full,
+        0b10 => SpinUpStrength::ThreeQuarter,
+        0b01 => SpinUpStrength::Half,
+        0b00 => SpinUpStrength::Bypass,
+        _ => panic!("internal error - validate match condition"),
+    };
 
-    // really smelly code
-    let duration: SpinUpDuration;
-    if (value & 0b0000_0111) != 0 {
-        duration = SpinUpDuration::Ms3200;
-    } else if (value & 0b0000_0110) != 0 {
-        duration = SpinUpDuration::Ms1600;
-    } else if (value & 0b0000_0101) != 0 {
-        duration = SpinUpDuration::Ms0800;
-    } else if (value & 0b0000_0100) != 0 {
-        duration = SpinUpDuration::Ms0400;
-    } else if (value & 0b0000_0011) != 0 {
-        duration = SpinUpDuration::Ms0200;
-    } else if (value & 0b0000_0010) != 0 {
-        duration = SpinUpDuration::Ms0100;
-    } else if (value & 0b0000_0001) != 0 {
-        duration = SpinUpDuration::Ms0050;
-    } else {
-        duration = SpinUpDuration::Bypass;
-    }
+    let duration = match value & 0b0000_0111 {
+        0b111 => SpinUpDuration::Ms3200,
+        0b110 => SpinUpDuration::Ms1600,
+        0b101 => SpinUpDuration::Ms0800,
+        0b100 => SpinUpDuration::Ms0400,
+        0b011 => SpinUpDuration::Ms0200,
+        0b010 => SpinUpDuration::Ms0100,
+        0b001 => SpinUpDuration::Ms0050,
+        0b000 => SpinUpDuration::Bypass,
+        _ => panic!("internal error - validate match condition"),
+    };
 
     // implicit return
     SpinUpBehavior {
@@ -233,11 +227,9 @@ where
 }
 
 /// change the fan spin up behavior
-pub fn set_spin_up_behavior<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    sub: SpinUpBehavior,
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_spin_up_behavior<Ibd>(ibd: &mut Ibd, sub: SpinUpBehavior)
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut value: u8 = 0x00;
     if sub.fast_mode {
@@ -246,11 +238,12 @@ pub fn set_spin_up_behavior<Dm>(
     value |= sub.strength as u8;
     value |= sub.duration as u8;
 
-    hw::set_spin_up_behavior(i2c_bus, value);
+    hw::set_spin_up_behavior(ibd, value);
 }
 
 /// see data sheet (section 6.16) for details
 /// TODO improve this struct and make it self-documenting
+#[derive(Debug, PartialEq)]
 pub struct FanConfig {
     // bit 7 is unused
     pub force: bool,     // enable the external temperature force register
@@ -262,11 +255,11 @@ pub struct FanConfig {
 }
 
 /// read the fan config register
-pub fn get_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> FanConfig
+pub fn get_fan_config<Ibd>(ibd: &mut Ibd) -> FanConfig
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let value = hw::get_fan_config(i2c_bus);
+    let value = hw::get_fan_config(ibd);
 
     FanConfig {
         force: (value & 0b0100_0000) != 0,
@@ -280,9 +273,9 @@ where
 }
 
 /// change the fan config register
-pub fn set_fan_config<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, fan_config: FanConfig)
+pub fn set_fan_config<Ibd>(ibd: &mut Ibd, fan_config: FanConfig)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut value = 0x00;
     if fan_config.force {
@@ -304,25 +297,26 @@ where
         value |= 0b0000_0011;
     }
 
-    hw::set_fan_config(i2c_bus, value);
+    hw::set_fan_config(ibd, value);
 }
 
 // ------------------------------------------------------------------------
 // PWM related settings
 // ------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub struct PwmSettings {
     pub frequency: u8, // range: 0..32
     pub divider: u8,   // range: 0..256
 }
 
 /// read the fan's PWM settings (frequency + divider)
-pub fn get_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> PwmSettings
+pub fn get_pwm_settings<Ibd>(ibd: &mut Ibd) -> PwmSettings
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let pwm_f = hw::get_pwm_frequency(i2c_bus);
-    let pwm_d = hw::get_pwm_frequency_divider(i2c_bus);
+    let pwm_f = hw::get_pwm_frequency(ibd);
+    let pwm_d = hw::get_pwm_frequency_divider(ibd);
 
     // implicit return
     PwmSettings {
@@ -333,14 +327,14 @@ where
 
 /// change the fan's PWM settings (frequency + divider)
 /// (the values determine the available steps for setting the fan speed)
-pub fn set_pwm_settings<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, pwm: PwmSettings)
+pub fn set_pwm_settings<Ibd>(ibd: &mut Ibd, pwm: PwmSettings)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // TODO validate that PWM control is being used (refuse if configured for DAC)
     // TODO PWM settings could be temporarily incompatible
     //      (old divider incompatible with new frequency)
     //      may need to disable CLK_OVR, update PWM and reenable CLK_OVR?
-    hw::set_pwm_frequency(i2c_bus, pwm.frequency);
-    hw::set_pwm_frequency_divider(i2c_bus, pwm.divider);
+    hw::set_pwm_frequency(ibd, pwm.frequency);
+    hw::set_pwm_frequency_divider(ibd, pwm.divider);
 }

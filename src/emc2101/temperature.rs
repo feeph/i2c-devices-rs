@@ -3,6 +3,8 @@
 */
 
 use crate::emc2101::hw;
+use core::cmp::Ord;
+use core::panic;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -14,42 +16,39 @@ use log::{debug, error, info, warn};
 /// read the temperature measured by the internal sensor (in °C)
 /// - the data sheet guarantees a precision of ±2°C
 /// - expected range: 0º.00C to 85.00ºC
-pub fn get_internal_temperature<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> f32
+pub fn get_internal_temperature<Ibd>(ibd: &mut Ibd) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    hw::get_internal_temperature(i2c_bus) as f32
+    hw::get_internal_temperature(ibd) as f32
 }
 
 /// read the "high temperature" alerting limit
 /// - expected range: 0.00ºC to 85.00ºC
 /// - default: 70.00°C
-pub fn get_internal_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> f32
+pub fn get_internal_temperature_high_limit<Ibd>(ibd: &mut Ibd) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    hw::get_internal_temperature_high_limit(i2c_bus) as f32
+    hw::get_internal_temperature_high_limit(ibd) as f32
 }
 
 /// set the "high temperature" alerting limit
 /// - expected range: 0.00ºC to 85.00ºC
 /// - decimal points are truncated (not rounded)
-pub fn set_internal_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: f32,
-) -> bool
+pub fn set_internal_temperature_high_limit<Ibd>(ibd: &mut Ibd, value: f32) -> bool
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     if (0.0..=85.0).contains(&value) {
         // implicit return
-        hw::set_internal_temperature_high_limit(i2c_bus, value as u8)
+        hw::set_internal_temperature_high_limit(ibd, value as u8)
     } else {
-        warn!("Provided value for internal temperature limit must be in range 0.0°C <= x <= 85°C!");
+        warn!(
+            "Provided value for internal temperature limit must be in range 0.0°C <= x <= 85.0°C!"
+        );
         // implicit return
         false
     }
@@ -59,6 +58,7 @@ where
 // temperature measurements - external temperature sensor (diode)
 // ------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub enum BetaCompensationMode {
     Automatic,
     Manual,
@@ -71,17 +71,18 @@ pub enum BetaCompensationMode {
 /// - In modes 'Automatic' and 'Disabled' the factor's value is ignored.
 ///
 /// See data sheet section 5.5 for details.
+#[derive(Debug, PartialEq)]
 pub struct BetaCompensation {
     pub mode: BetaCompensationMode,
     pub factor: u8,
 }
 
 /// read the external sensor's beta compensation factor
-pub fn get_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> BetaCompensation
+pub fn get_ets_bcf<Ibd>(ibd: &mut Ibd) -> BetaCompensation
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let byte = hw::get_ets_bcf(i2c_bus);
+    let byte = hw::get_ets_bcf(ibd);
 
     // implicit return
     match byte.clamp(0x00, 0x08) {
@@ -101,9 +102,9 @@ where
 }
 
 /// change the external sensor's beta compensation factor
-pub fn set_ets_bcf<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, bcf: BetaCompensation)
+pub fn set_ets_bcf<Ibd>(ibd: &mut Ibd, bcf: BetaCompensation)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let byte = match bcf.mode {
         BetaCompensationMode::Automatic => 0x08,
@@ -111,7 +112,7 @@ where
         BetaCompensationMode::Manual => bcf.factor.clamp(0x00, 0x06),
     };
 
-    hw::set_ets_bcf(i2c_bus, byte);
+    hw::set_ets_bcf(ibd, byte);
 }
 
 /// read the external sensor's diode ideality factor
@@ -119,12 +120,12 @@ where
 /// - expected range: 0x08 to 0x37
 ///
 /// (see data sheet section 6.12 for details)
-pub fn get_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_ets_dif<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    hw::get_ets_dif(i2c_bus)
+    hw::get_ets_dif(ibd)
 }
 
 /// change the external sensor's diode ideality factor
@@ -132,17 +133,27 @@ where
 /// - expected range: 0x08 to 0x37
 /// - the provided value is clamped to this range
 ///
+/// **CAUTION:** Do NOT read a temperature value immediately after setting
+///              a new diode ideality factor!
+///
+/// _You need to allow the chip to read the newly set value and update the
+/// temperature reading using the new DIF. A delay of 100 milliseconds is
+/// recommended, e.g.:_
+///
+/// ```TEXT
+/// // configure a new diode ideality factor
+/// set_ets_dif(ibd, 0x37)
+/// // wait for the new factor to be read and applied
+/// esp_hal::delay::Delay::new().delay_millis(100u32);
+/// ```
+///
 /// (see data sheet section 6.12 for details)
-pub fn set_ets_dif<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_ets_dif<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0x08, 0x37);
-    hw::set_ets_dif(i2c_bus, value_clamped);
-
-    // wait a little bit to ensure the temperature measurement register was
-    // updated using the newly set DIF value
-    esp_hal::delay::Delay::new().delay_millis(100u32);
+    hw::set_ets_dif(ibd, value_clamped);
 }
 
 /// read the external sensor's critical temperature threshold and hysteresis
@@ -150,12 +161,12 @@ where
 /// - default: 85°C threshold, 10°C hysteresis
 ///
 /// (see data sheet section 6.12 for details)
-pub fn get_ets_critical_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> (u8, u8)
+pub fn get_ets_critical_limit<Ibd>(ibd: &mut Ibd) -> (u8, u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let threshold = hw::get_ets_tcrit_threshold(i2c_bus);
-    let hysteresis = hw::get_ets_tcrit_hysteresis(i2c_bus);
+    let threshold = hw::get_ets_tcrit_threshold(ibd);
+    let hysteresis = hw::get_ets_tcrit_hysteresis(ibd);
 
     // implicit return
     (threshold, hysteresis)
@@ -166,43 +177,43 @@ where
 /// - default: 85°C threshold, 10°C hysteresis
 ///
 /// (see data sheet section 6.12 for details)
-pub fn set_ets_critical_limit<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, tcrit: (u8, u8))
+pub fn set_ets_critical_limit<Ibd>(ibd: &mut Ibd, tcrit: (u8, u8))
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let threshold_clamped = tcrit.0.clamp(0, 85);
     let hysteresis_clamped = tcrit.1.clamp(0, 85);
-    hw::set_ets_tcrit_threshold(i2c_bus, threshold_clamped);
-    hw::set_ets_tcrit_hysteresis(i2c_bus, hysteresis_clamped);
+    hw::set_ets_tcrit_threshold(ibd, threshold_clamped);
+    hw::set_ets_tcrit_hysteresis(ibd, hysteresis_clamped);
 }
 
 /// read the temperature measured by the external sensor (in °C)
 /// - the data sheet guarantees a precision of ±1°C
+/// - this function will **sleep** for 50 milliseconds if the device is
+///   in standby mode and a temperature measurement must be requested
 ///
 /// expected range: -64.0°C ≤ x ≤ 127.0°C
-pub fn get_external_temperature<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> (f32, ExternalDiodeStatus)
+pub fn get_external_temperature<Ibd>(ibd: &mut Ibd) -> (f32, ExternalDiodeStatus)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // need to check the configuration register to check if continuous
     // conversion mode is enabled
-    let cfg = hw::get_config_register(i2c_bus);
+    let cfg = hw::get_config_register(ibd);
     if cfg & 0b0100_0000 != 0 {
         // The device is in low power (standby) mode and the temperature
         // measurement registers aren't continuously updated.
         debug!("Standby mode. Need to trigger a temperature conversion.");
-        hw::trigger_one_shot(i2c_bus);
+        hw::trigger_one_shot(ibd);
 
         // wait a little bit for the measurement to be completed
         //
         // 32 conversions per second (31.25ms per conversion) is the highest
         // possible sample rate in continuous conversion mode
-        esp_hal::delay::Delay::new().delay_millis(50u32);
+        ibd.sleep_ms(50u32);
     }
 
-    let bytes = hw::get_external_temperature(i2c_bus);
+    let bytes = hw::get_external_temperature(ibd);
     debug!("get_external_temperature():");
     debug!("  MSB: {0:#04X}", bytes.0);
     debug!("  LSB: {0:#010b}", bytes.1);
@@ -213,16 +224,29 @@ where
     convert_bytes2temperature(bytes)
 }
 
+pub fn set_external_temperature_override<Ibd>(ibd: &mut Ibd, value: f32) -> bool
+where
+    Ibd: crate::traits::I2cBusDevice,
+{
+    if (0.0..=85.0).contains(&value) {
+        hw::set_external_temperature_override(ibd, value as u8);
+        // implicit return
+        true
+    } else {
+        warn!("Provided value for external temperature limit override must be in range 0.0°C <= x <= 85.0°C!");
+        // implicit return
+        false
+    }
+}
+
 /// read the "low temperature" alerting limit in °C
 ///
 /// expected range: -64.0°C ≤ x ≤ 127.0°C
-pub fn get_external_temperature_low_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> f32
+pub fn get_external_temperature_low_limit<Ibd>(ibd: &mut Ibd) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let bytes = hw::get_external_temperature_low_limit(i2c_bus);
+    let bytes = hw::get_external_temperature_low_limit(ibd);
 
     // implicit return
     convert_bytes2temperature(bytes).0
@@ -235,17 +259,14 @@ where
 /// - The clamped value is returned to the caller.
 ///
 /// default: 0.00°C
-pub fn set_external_temperature_low_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: f32,
-) -> f32
+pub fn set_external_temperature_low_limit<Ibd>(ibd: &mut Ibd, value: f32) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0.0, 85.0);
 
     let bytes = convert_temperature2bytes(value_clamped);
-    hw::set_external_temperature_low_limit(i2c_bus, bytes);
+    hw::set_external_temperature_low_limit(ibd, bytes);
 
     // implicit return
     convert_bytes2temperature(bytes).0
@@ -254,13 +275,11 @@ where
 /// read the "high temperature" alerting limit (in °C)
 ///
 /// expected range: 0.0°C ≤ x ≤ 85.0°C
-pub fn get_external_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> f32
+pub fn get_external_temperature_high_limit<Ibd>(ibd: &mut Ibd) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let bytes = hw::get_external_temperature_high_limit(i2c_bus);
+    let bytes = hw::get_external_temperature_high_limit(ibd);
 
     // implicit return
     convert_bytes2temperature(bytes).0
@@ -273,22 +292,20 @@ where
 /// - The clamped value is returned to the caller.
 ///
 /// default: 85.00°C
-pub fn set_external_temperature_high_limit<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: f32,
-) -> f32
+pub fn set_external_temperature_high_limit<Ibd>(ibd: &mut Ibd, value: f32) -> f32
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     let value_clamped = value.clamp(0.0, 85.0);
 
     let bytes = convert_temperature2bytes(value_clamped);
-    hw::set_external_temperature_high_limit(i2c_bus, bytes);
+    hw::set_external_temperature_high_limit(ibd, bytes);
 
     // implicit return
     convert_bytes2temperature(bytes).0
 }
 
+#[derive(Debug, PartialEq)]
 pub enum AlertFilterMode {
     Disabled = 0b0000_0000,
     Level1 = 0b0000_0010,
@@ -296,11 +313,13 @@ pub enum AlertFilterMode {
     Level3 = 0b0000_0110,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum AlertPinMode {
     Interrupt = 0b0000_0000,
     Comparator = 0b0000_0001,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct AveragingFilter {
     pub filter_mode: AlertFilterMode,
     pub pin_mode: AlertPinMode,
@@ -308,13 +327,11 @@ pub struct AveragingFilter {
 
 /// get the level of digital averaging used for the external diode
 /// temperature measurements
-pub fn get_ets_averaging_filter<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-) -> AveragingFilter
+pub fn get_ets_averaging_filter<Ibd>(ibd: &mut Ibd) -> AveragingFilter
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    let bytes = hw::get_ets_averaging_filter(i2c_bus);
+    let bytes = hw::get_ets_averaging_filter(ibd);
 
     let fm = match bytes & 0b0000_0110 {
         0b0000_0000 => AlertFilterMode::Disabled,
@@ -340,17 +357,15 @@ where
 
 /// set the level of digital averaging used for the external diode
 /// temperature measurements
-pub fn set_ets_averaging_filter<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    af: AveragingFilter,
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_ets_averaging_filter<Ibd>(ibd: &mut Ibd, af: AveragingFilter)
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
     let mut bytes = 0x00;
     bytes += af.filter_mode as u8;
     bytes += af.pin_mode as u8;
 
-    hw::set_ets_averaging_filter(i2c_bus, bytes);
+    hw::set_ets_averaging_filter(ibd, bytes);
 }
 
 // ------------------------------------------------------------------------
@@ -362,6 +377,7 @@ pub fn set_ets_averaging_filter<Dm>(
 // - the internal representation has limited granularity,
 //   external temperatures are graduated in 0.125°C steps
 
+#[derive(Debug, PartialEq)]
 pub enum ExternalDiodeStatus {
     Operational,
     OpenCircuit,

@@ -1,0 +1,13 @@
+#
+# Rust tool chain configuration
+# <https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file>
+#
+[toolchain]
+# esp_hal requires the nightly channel to work properly
+# pin this library to nightly channel as well to avoid issues
+channel = "nightly"
+components = [
+    "clippy",
+    "llvm-tools-preview",
+    "rustfmt",
+]

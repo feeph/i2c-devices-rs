@@ -11,39 +11,39 @@ use crate::emc2101::hw;
 /// get value of scratch register #1
 ///
 /// (this register is not used by the chip in any way)
-pub fn get_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_scratch_register1<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::get_scratch_register1(i2c_bus)
+    hw::get_scratch_register1(ibd)
 }
 
 /// set value of scratch register #1
 ///
 /// (this register is not used by the chip in any way)
-pub fn set_scratch_register1<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_scratch_register1<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::set_scratch_register1(i2c_bus, value)
+    hw::set_scratch_register1(ibd, value)
 }
 
 /// get value of scratch register #2
 ///
 /// (this register is not used by the chip in any way)
-pub fn get_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> u8
+pub fn get_scratch_register2<Ibd>(ibd: &mut Ibd) -> u8
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::get_scratch_register2(i2c_bus)
+    hw::get_scratch_register2(ibd)
 }
 
 /// set value of scratch register #2
 ///
 /// (this register is not used by the chip in any way)
-pub fn set_scratch_register2<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>, value: u8)
+pub fn set_scratch_register2<Ibd>(ibd: &mut Ibd, value: u8)
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::set_scratch_register2(i2c_bus, value)
+    hw::set_scratch_register2(ibd, value)
 }

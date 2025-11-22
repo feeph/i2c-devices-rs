@@ -10,6 +10,9 @@ name: verify pull request
 on:
   pull_request:
 
+permissions:
+  pull-requests: write
+
 jobs:
   lint:
     name: lint the code
@@ -33,12 +36,6 @@ jobs:
       # https://github.com/actions-rust-lang/setup-rust-toolchain
       - name: install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
-      # need to add target for cross-compilation
-      - name: add target for embedded system
-        id: rustup-target
-        run: |
-          target=$(grep ^target .cargo/config.toml|sed -E 's/^target\s=\s"(.*)"$/\1/')
-          rustup target add $target
       # the reference 'origin/HEAD' may be missing on GHA runner
       # (will fail if you're not merging to the default branch)
       - name: ensure 'origin/HEAD' exists
@@ -58,3 +55,15 @@ jobs:
         run: |
           uv tool install pre-commit
           pre-commit run --show-diff-on-failure --color=always --hook-stage pre-push --files $CHANGED_FILES
+      - name: run unit tests (with code coverage report)
+        run: |
+          echo -e 'code coverage report:\n' > output.md
+          echo '```TEXT' >> output.md
+          cargo install cargo-llvm-cov
+          set -o pipefail
+          cargo llvm-cov --fail-under-lines=30 | tee -a output.md
+          echo '```' >> output.md
+      - name: PR comment with file
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          file-path: output.md

@@ -8,6 +8,7 @@
 use crate::emc2101::hw;
 
 /// conversion rate (measured in 'samples per seconds')
+#[derive(Debug, PartialEq)]
 pub enum ConversionRate {
     Sps1o16 = 0b0000, // 1 sample every 16 seconds (1/16)
     Sps1o8 = 0b0001,  // 1 sample every 8 seconds (1/8)
@@ -25,22 +26,21 @@ pub enum ConversionRate {
 /// read the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn get_conversion_rate<Dm>(i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>) -> ConversionRate
+pub fn get_conversion_rate<Ibd>(ibd: &mut Ibd) -> ConversionRate
 where
-    Dm: esp_hal::DriverMode,
+    Ibd: crate::traits::I2cBusDevice,
 {
     // implicit return
-    let value = hw::get_conversion_rate(i2c_bus);
-    match value {
+    match hw::get_conversion_rate(ibd) {
         0b0000 => ConversionRate::Sps1o16,
         0b0001 => ConversionRate::Sps1o8,
         0b0010 => ConversionRate::Sps1o4,
         0b0011 => ConversionRate::Sps1o2,
         0b0100 => ConversionRate::Sps1,
         0b0101 => ConversionRate::Sps2,
-        0b0110 => ConversionRate::Sps1o4,
-        0b0111 => ConversionRate::Sps1o8,
-        0b1000 => ConversionRate::Sps1o8,
+        0b0110 => ConversionRate::Sps4,
+        0b0111 => ConversionRate::Sps8,
+        0b1000 => ConversionRate::Sps16,
         // all remaining values map to 32 samples per second
         _ => ConversionRate::Sps32,
     }
@@ -49,11 +49,9 @@ where
 /// change the temperature conversion rate register
 ///
 /// expected range: 0..16
-pub fn set_conversion_rate<Dm>(
-    i2c_bus: &mut esp_hal::i2c::master::I2c<'_, Dm>,
-    value: ConversionRate,
-) where
-    Dm: esp_hal::DriverMode,
+pub fn set_conversion_rate<Ibd>(ibd: &mut Ibd, value: ConversionRate)
+where
+    Ibd: crate::traits::I2cBusDevice,
 {
-    hw::set_conversion_rate(i2c_bus, value as u8);
+    hw::set_conversion_rate(ibd, value as u8);
 }
