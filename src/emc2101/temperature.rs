@@ -4,10 +4,11 @@
 
 use crate::emc2101::hw;
 use core::cmp::Ord;
-use core::panic;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
+
+use crate::emc2101::data_objects::{AveragingFilter, BetaCompensation};
 
 // ------------------------------------------------------------------------
 // temperature measurements - internal temperature sensor
@@ -58,47 +59,12 @@ where
 // temperature measurements - external temperature sensor (diode)
 // ------------------------------------------------------------------------
 
-#[derive(Debug, PartialEq)]
-pub enum BetaCompensationMode {
-    Automatic,
-    Manual,
-    Disabled,
-}
-
-/// Please note:
-/// - The mode must be set to 'Disabled' when using a thermal terminal
-///   diode or a diode-connected transistor (e.g. 2N3904 / 2N3906).
-/// - In modes 'Automatic' and 'Disabled' the factor's value is ignored.
-///
-/// See data sheet section 5.5 for details.
-#[derive(Debug, PartialEq)]
-pub struct BetaCompensation {
-    pub mode: BetaCompensationMode,
-    pub factor: u8,
-}
-
 /// read the external sensor's beta compensation factor
 pub fn get_ets_bcf<Ibd>(ibd: &mut Ibd) -> BetaCompensation
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let byte = hw::get_ets_bcf(ibd);
-
-    // implicit return
-    match byte.clamp(0x00, 0x08) {
-        0x08 => BetaCompensation {
-            mode: BetaCompensationMode::Automatic,
-            factor: 0b0000_0000,
-        },
-        0x07 => BetaCompensation {
-            mode: BetaCompensationMode::Disabled,
-            factor: 0b0000_0000,
-        },
-        _ => BetaCompensation {
-            mode: BetaCompensationMode::Manual,
-            factor: byte & 0b0000_0111,
-        },
-    }
+    BetaCompensation::from(hw::get_ets_bcf(ibd))
 }
 
 /// change the external sensor's beta compensation factor
@@ -106,13 +72,7 @@ pub fn set_ets_bcf<Ibd>(ibd: &mut Ibd, bcf: BetaCompensation)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let byte = match bcf.mode {
-        BetaCompensationMode::Automatic => 0x08,
-        BetaCompensationMode::Disabled => 0x07,
-        BetaCompensationMode::Manual => bcf.factor.clamp(0x00, 0x06),
-    };
-
-    hw::set_ets_bcf(ibd, byte);
+    hw::set_ets_bcf(ibd, bcf.into());
 }
 
 /// read the external sensor's diode ideality factor
@@ -305,54 +265,14 @@ where
     convert_bytes2temperature(bytes).0
 }
 
-#[derive(Debug, PartialEq)]
-pub enum AlertFilterMode {
-    Disabled = 0b0000_0000,
-    Level1 = 0b0000_0010,
-    Level2 = 0b0000_0100,
-    Level3 = 0b0000_0110,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum AlertPinMode {
-    Interrupt = 0b0000_0000,
-    Comparator = 0b0000_0001,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct AveragingFilter {
-    pub filter_mode: AlertFilterMode,
-    pub pin_mode: AlertPinMode,
-}
-
 /// get the level of digital averaging used for the external diode
 /// temperature measurements
 pub fn get_ets_averaging_filter<Ibd>(ibd: &mut Ibd) -> AveragingFilter
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let bytes = hw::get_ets_averaging_filter(ibd);
-
-    let fm = match bytes & 0b0000_0110 {
-        0b0000_0000 => AlertFilterMode::Disabled,
-        0b0000_0010 => AlertFilterMode::Level1,
-        0b0000_0100 => AlertFilterMode::Level2,
-        0b0000_0110 => AlertFilterMode::Level3,
-        // no other value can occur
-        _ => panic!("Internal error: Check bit mask."),
-    };
-    let pm = match bytes & 0b0000_0001 {
-        0b0000_0000 => AlertPinMode::Interrupt,
-        0b0000_0001 => AlertPinMode::Comparator,
-        // no other value can occur
-        _ => panic!("Internal error: Check bit mask."),
-    };
-
     // implicit return
-    AveragingFilter {
-        filter_mode: fm,
-        pin_mode: pm,
-    }
+    AveragingFilter::from(hw::get_ets_averaging_filter(ibd))
 }
 
 /// set the level of digital averaging used for the external diode
@@ -361,11 +281,7 @@ pub fn set_ets_averaging_filter<Ibd>(ibd: &mut Ibd, af: AveragingFilter)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let mut bytes = 0x00;
-    bytes += af.filter_mode as u8;
-    bytes += af.pin_mode as u8;
-
-    hw::set_ets_averaging_filter(ibd, bytes);
+    hw::set_ets_averaging_filter(ibd, af.into());
 }
 
 // ------------------------------------------------------------------------

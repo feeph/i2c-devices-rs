@@ -130,7 +130,7 @@ fn get_ets_averaging_filter() {
 
     let computed = sut::get_ets_averaging_filter(&mut vbd);
     let expected = sut::AveragingFilter {
-        filter_mode: sut::AlertFilterMode::Disabled,
+        filter_mode: sut::AveragingFilterMode::Disabled,
         pin_mode: sut::AlertPinMode::Interrupt,
     };
 
@@ -141,7 +141,7 @@ fn get_ets_averaging_filter() {
 fn set_ets_averaging_filter() {
     let mut vbd = create_emc2101();
     let val = sut::AveragingFilter {
-        filter_mode: sut::AlertFilterMode::Disabled,
+        filter_mode: sut::AveragingFilterMode::Disabled,
         pin_mode: sut::AlertPinMode::Interrupt,
     };
 
@@ -149,7 +149,7 @@ fn set_ets_averaging_filter() {
 
     let computed = sut::get_ets_averaging_filter(&mut vbd);
     let expected = sut::AveragingFilter {
-        filter_mode: sut::AlertFilterMode::Disabled,
+        filter_mode: sut::AveragingFilterMode::Disabled,
         pin_mode: sut::AlertPinMode::Interrupt,
     };
 
@@ -288,11 +288,21 @@ fn set_external_temperature_high_limit() {
 }
 
 #[test]
-fn set_external_temperature_override() {
+fn set_external_temperature_override_pass() {
     let mut vbd = create_emc2101();
 
     let computed = sut::set_external_temperature_override(&mut vbd, 75.5);
     let expected = true;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_external_temperature_override_fail() {
+    let mut vbd = create_emc2101();
+
+    let computed = sut::set_external_temperature_override(&mut vbd, 125.0);
+    let expected = false;
 
     assert_eq!(computed, expected);
 }
@@ -398,6 +408,24 @@ fn get_hardware_details_emc2101r() {
 }
 
 #[test]
+fn get_hardware_details_unknown() {
+    let mut vbd = create_emc2101();
+    vbd.registers[0xFD] = (0x17, false);
+    vbd.registers[0xFE] = (0x5E, false);
+
+    let computed = sut::get_hardware_details(&mut vbd);
+    let expected = sut::HardwareDetails {
+        mid: 0x5E,
+        manufacturer: "<unknown>",
+        pid: 0x17,
+        product: "<unknown>",
+        revision: 1,
+    };
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
 fn get_internal_temperature() {
     let mut vbd = create_emc2101();
     let val = (create_random_value::<u8>() / 3).clamp(0, 85);
@@ -420,7 +448,7 @@ fn get_internal_temperature_high_limit() {
 }
 
 #[test]
-fn set_internal_temperature_high_limit() {
+fn set_internal_temperature_high_limit_pass() {
     let mut vbd = create_emc2101();
     let val = (create_random_value::<u8>() / 3).clamp(0, 85);
 
@@ -429,6 +457,32 @@ fn set_internal_temperature_high_limit() {
 
     let computed = sut::get_internal_temperature_high_limit(&mut vbd);
     let expected = val as f32;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_internal_temperature_high_limit_fail1() {
+    let mut vbd = create_emc2101();
+
+    // value is rejected if out of range (0 ≤ x ≤ 85)
+    sut::set_internal_temperature_high_limit(&mut vbd, -1.0); // to low
+
+    let computed = sut::get_internal_temperature_high_limit(&mut vbd);
+    let expected = 70.0;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_internal_temperature_high_limit_fail2() {
+    let mut vbd = create_emc2101();
+
+    // value is rejected if out of range (0 ≤ x ≤ 85)
+    sut::set_internal_temperature_high_limit(&mut vbd, 127.0); // to high
+
+    let computed = sut::get_internal_temperature_high_limit(&mut vbd);
+    let expected = 70.0;
 
     assert_eq!(computed, expected);
 }

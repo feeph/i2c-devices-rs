@@ -2,6 +2,8 @@
     interface for SMSC's EMC2101 and EMC2101-R fan controller chips
 */
 
+mod data_objects;
+
 pub mod hw;
 
 // pull in all abstractions and re-export for user convenience
@@ -17,6 +19,10 @@ mod temperature;
 
 pub use config::*;
 pub use conversion_rate::*;
+pub use data_objects::{
+    AlertMask, AlertPinMode, AveragingFilter, AveragingFilterMode, BetaCompensation,
+    BetaCompensationMode, ConfigRegister, SpinUpBehavior, SpinUpDuration, SpinUpStrength,
+};
 pub use fan::*;
 pub use hardware_details::*;
 pub use lut::*;
