@@ -390,7 +390,7 @@ fn get_internal_temperature_high_limit() {
 }
 
 #[test]
-fn set_internal_temperature_high_limit() {
+fn set_internal_temperature_high_limit_pass() {
     let mut vbd = create_emc2101();
     let val = (create_random_value::<u8>() / 3).clamp(0, 85);
 
@@ -399,6 +399,19 @@ fn set_internal_temperature_high_limit() {
 
     let computed = sut::get_internal_temperature_high_limit(&mut vbd);
     let expected = val;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn set_internal_temperature_high_limit_fail() {
+    let mut vbd = create_emc2101();
+
+    // value is rejected if out of range (0 ≤ x ≤ 85)
+    sut::set_internal_temperature_high_limit(&mut vbd, 127);
+
+    let computed = sut::get_internal_temperature_high_limit(&mut vbd);
+    let expected = 70;
 
     assert_eq!(computed, expected);
 }
@@ -661,11 +674,22 @@ fn trigger_one_shot() {
 }
 
 #[test]
-fn validate_device_registers() {
+fn validate_device_registers_pass() {
     let mut vbd = create_emc2101();
 
     let computed = sut::validate_device_registers(&mut vbd);
     let expected = true;
+
+    assert_eq!(computed, expected);
+}
+
+#[test]
+fn validate_device_registers_fail() {
+    let mut vbd = create_emc2101();
+    sut::set_scratch_register1(&mut vbd, 0x01);
+
+    let computed = sut::validate_device_registers(&mut vbd);
+    let expected = false;
 
     assert_eq!(computed, expected);
 }
