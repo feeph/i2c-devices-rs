@@ -108,7 +108,7 @@ fn main() -> ! {
     };
 
     // use the I²C bus device to do something
-    // i2c_devices::emc2101::reset_device_registers(&mut ibd);
+    i2c_devices::emc2101::reset_device_registers(&mut ibd);
 
     // mutable allows us to change blink rate and brightness later on
     let mut sd1 = i2c_devices::ht16k33::Segment7x4 {

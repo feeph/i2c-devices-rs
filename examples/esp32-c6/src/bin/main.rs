@@ -95,7 +95,7 @@ async fn main(spawner: Spawner) -> ! {
     spawner.must_spawn(i2c_task(i2c_bus0));
 
     loop {
-        // info!("Hello world!");
+        info!("Hello world!");
         Timer::after(Duration::from_secs(1)).await;
     }
 }
@@ -112,7 +112,7 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
     };
 
     // use the I²C bus device to do something
-    // i2c_devices::emc2101::reset_device_registers(&mut ibd);
+    i2c_devices::emc2101::reset_device_registers(&mut ibd);
 
     // mutable allows us to change blink rate and brightness later on
     let mut sd0 = i2c_devices::ht16k33::Segment14x4 {
