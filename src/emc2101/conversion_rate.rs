@@ -6,7 +6,6 @@
 */
 
 use crate::emc2101::hw;
-use std::convert::From;
 
 /// conversion rate (measured in 'samples per seconds')
 #[derive(Debug, PartialEq)]
