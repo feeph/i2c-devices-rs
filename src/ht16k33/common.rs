@@ -31,7 +31,7 @@ pub trait SegmentedDisplay {
     /// (implicitly enables the display)
     /// - brightness level is graduated from 0 (6%) to 15 (100%)
     /// - use the disable() function to turn off the display entirely
-    fn set_brightness_level<Ibd>(&mut self, ibd: &mut Ibd, brightness_level: u8)
+    fn set_brightness_level<Ibd>(&mut self, ibd: &mut Ibd, brightness_level: u8) -> bool
     where
         Ibd: crate::traits::I2cBusDevice;
 

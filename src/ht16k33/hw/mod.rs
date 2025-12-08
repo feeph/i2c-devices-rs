@@ -9,7 +9,6 @@
 */
 
 use core::iter::Iterator;
-use core::panic;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -43,20 +42,22 @@ where
 // enable/disable the internal system oscillator
 // - 0: turn off system oscillator (standby mode)
 // - 1: turn on system oscillator (normal operation mode)
-pub fn set_oscillator_mode<Ibd>(ibd: &mut Ibd, da: u8, value: u8)
+pub fn set_oscillator_mode<Ibd>(ibd: &mut Ibd, da: u8, value: u8) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    if value > 1 {
-        panic!("Oscillator mode must be in range 0 ≤ x ≤ 1");
+    if value <= 1 {
+        let value = 0x20 | value;
+        debug!(
+            "Setting oscillator mode on {0:#04X} to {1:#04X}.",
+            da, value
+        );
+        ibd.write_byte(da, value);
+        true
+    } else {
+        error!("Oscillator mode must be in range 0 ≤ x ≤ 1");
+        false
     }
-
-    let value = 0x20 | value;
-    debug!(
-        "Setting oscillator mode on {0:#04X} to {1:#04X}.",
-        da, value
-    );
-    ibd.write_byte(da, value);
 }
 
 // ------------------------------------------------------------------------
@@ -92,13 +93,19 @@ where
 /// - 7: 0.5Hz
 ///
 /// _(the even values 0, 2, 4 and 6 are not used)_
-pub fn set_blink_rate<Ibd>(ibd: &mut Ibd, da: u8, value: u8)
+pub fn set_blink_rate<Ibd>(ibd: &mut Ibd, da: u8, value: u8) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value = 0x80 | value;
-    debug!("Setting blink rate on {0:#04X} to {1:#04X}.", da, value);
-    ibd.write_byte(da, value);
+    if value <= 15 {
+        let value = 0x80 | value;
+        debug!("Setting blink rate on {0:#04X} to {1:#04X}.", da, value);
+        ibd.write_byte(da, value);
+        true
+    } else {
+        error!("Blink rate must be in range 0 ≤ x ≤ 15");
+        false
+    }
 }
 
 // ------------------------------------------------------------------------
@@ -111,15 +118,17 @@ where
 /// - 3: INT/ROW output pin is set to INT output (active high)
 ///
 /// _(the value 2 is treated as 0)_
-pub fn set_output_select<Ibd>(ibd: &mut Ibd, da: u8, value: u8)
+pub fn set_output_select<Ibd>(ibd: &mut Ibd, da: u8, value: u8) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    if value > 3 {
-        panic!("Output pin select must be in range 0 ≤ x ≤ 3");
+    if value <= 3 {
+        ibd.write_byte(da, 0xA0 | value);
+        true
+    } else {
+        error!("Output pin select must be in range 0 ≤ x ≤ 3");
+        false
     }
-
-    ibd.write_byte(da, 0xA0 | value);
 }
 
 // ------------------------------------------------------------------------
@@ -136,14 +145,20 @@ where
 /// set the display's brightness level
 ///
 /// brightness level is graduated from 0 (6%) to 15 (100%)
-pub fn set_brightness_level<Ibd>(ibd: &mut Ibd, da: u8, value: u8)
+pub fn set_brightness_level<Ibd>(ibd: &mut Ibd, da: u8, value: u8) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    let value = 0xE0 | value;
-    debug!(
-        "Setting brightness level on {0:#04X} to {1:#04X}.",
-        da, value
-    );
-    ibd.write_byte(da, value);
+    if value <= 15 {
+        let value = 0xE0 | value;
+        debug!(
+            "Setting brightness level on {0:#04X} to {1:#04X}.",
+            da, value
+        );
+        ibd.write_byte(da, value);
+        true
+    } else {
+        error!("Brightness level must be in range 0 ≤ x ≤ 15");
+        false
+    }
 }

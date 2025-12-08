@@ -2,11 +2,11 @@
     convert the provided character into a 2-byte tuple,
     suitable for displaying on 7- or 14-segment displays
 
-    Customized glyphs can be provided by duplicating this function and
-    adjusting the bit-patterns or add/remove specific mappings as needed.
+    - Customized glyphs can be provided by duplicating this function and
+      adjusting the bit-patterns or add/remove specific mappings as needed.
+    - This code replicates the functionality of a dictionary / associative
+      hash because these types aren't available in 'no_std'.
 */
-// TODO the 4-digit/7-segment backpack is actually 5 digits and needs different handling
-// (the colon between the 2nd and 3rd digit is addressed as a digit)
 
 use numtoa::NumToA;
 
@@ -57,7 +57,7 @@ pub fn convert_7(c: char) -> (u8, u8) {
         'Y' => (0b0110_1110, 0b0000_0000),
         // 'Z' => <unable to display>
         '.' => (0b1000_0000, 0b0000_0000),
-        ':' => (0b1111_1111, 0b0000_0000),
+        ':' => (0b0000_0010, 0b0000_0000), // mapped to 'B' segment
         // encountered an unknown character
         _ => (0b0000_0000, 0b0000_0000),
     }
@@ -218,9 +218,6 @@ pub fn convert_to_4_digits(number: f32, convert: fn(char) -> (u8, u8)) -> [u8; 1
         for c in f.numtoa_str(10, &mut number_buf).chars() {
             number_str[idx] = c;
             idx += 1;
-            if idx > (digits * 2) {
-                break;
-            }
         }
     } else {
         // too high
