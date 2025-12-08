@@ -269,6 +269,7 @@ name = "i2c_devices"
 version = "0.1.0"
 dependencies = [
  "log",
+ "numtoa",
 ]
 
 [[package]]
@@ -320,6 +321,12 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "numtoa"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a6da8d50bd4f4b2e9788c44714a3fa4e465d33fd6a6ad70991db6eb30807dca"
 
 [[package]]
 name = "panic-halt"

@@ -18,7 +18,7 @@ use log::{debug, error, info, warn};
 // display data address pointer (0x00)
 // ------------------------------------------------------------------------
 
-pub fn set_display_data<Ibd>(ibd: &mut Ibd, da: u8, values: [u8; 16])
+pub fn set_display_data<Ibd>(ibd: &mut Ibd, da: u8, values: &[u8; 16])
 where
     Ibd: crate::traits::I2cBusDevice,
 {
@@ -27,12 +27,18 @@ where
         buffer[idx + 1] = *value;
     }
 
+    debug!("Setting data on {0:#04X}.", da);
     ibd.write_bytes(da, &buffer);
 }
 
 // ------------------------------------------------------------------------
-// system setup (0x20)
+// system setup register (0x20)
 // ------------------------------------------------------------------------
+// while the system oscillator is disabled the device is in standby mode
+//
+// while in standby mode the HT16K33 can not
+// - accept input commands
+// - write data to any register except the system setup register
 
 // enable/disable the internal system oscillator
 // - 0: turn off system oscillator (standby mode)
@@ -45,15 +51,17 @@ where
         panic!("Oscillator mode must be in range 0 ≤ x ≤ 1");
     }
 
-    ibd.write_byte(da, 0x20 | value);
+    let value = 0x20 | value;
+    debug!(
+        "Setting oscillator mode on {0:#04X} to {1:#04X}.",
+        da, value
+    );
+    ibd.write_byte(da, value);
 }
 
 // ------------------------------------------------------------------------
 // key data address pointer (0x40)
 // ------------------------------------------------------------------------
-
-// 0b0100_0###
-// -----------
 // - three bits of immediate data, bits K0 to K2, are transferred to the
 //   data pointer to define one of six key data RAM addresses
 // - it is strongly recommended that the key data RAM of address 0x40~0x45
@@ -62,27 +70,19 @@ where
 // - if the key data register address (An) is 0x40~0x45, after reaching the
 //   memory location 0x45, the pointer will reset to 0x40
 
+// <not implemented>
+
 // ------------------------------------------------------------------------
 // INT flag address pointer (0x60)
 // ------------------------------------------------------------------------
+// When any key matrix key is pressed, after the completion of two key
+// scan cycles, this int flag bit goes to a high level and remains at a
+// high level until all key data has been read.
 
-/// read the interrupt flag signal output (unclear how this works)
-///
-/// When any key matrix key is pressed, after the completion of two key
-/// scan cycles, this int flag bit goes to a high level and remains at a
-/// high level until all key data has been read.
-pub fn get_int_flag<Ibd>(ibd: &mut Ibd, da: u8) -> u8
-where
-    Ibd: crate::traits::I2cBusDevice,
-{
-    ibd.write_byte(da, 0x60);
-
-    // implicit return
-    0x00
-}
+// <not implemented>
 
 // ------------------------------------------------------------------------
-// display setup (0x80)
+// display setup register (0x80)
 // ------------------------------------------------------------------------
 
 /// set the display's blink rate
@@ -97,11 +97,12 @@ where
     Ibd: crate::traits::I2cBusDevice,
 {
     let value = 0x80 | value;
+    debug!("Setting blink rate on {0:#04X} to {1:#04X}.", da, value);
     ibd.write_byte(da, value);
 }
 
 // ------------------------------------------------------------------------
-// ROW/INT set (0xA0)
+// ROW/INT set register (0xA0)
 // ------------------------------------------------------------------------
 
 /// defines INT/ROW output pin select and INT pin output active level status
@@ -139,5 +140,10 @@ pub fn set_brightness_level<Ibd>(ibd: &mut Ibd, da: u8, value: u8)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    ibd.write_byte(da, 0xE0 | value);
+    let value = 0xE0 | value;
+    debug!(
+        "Setting brightness level on {0:#04X} to {1:#04X}.",
+        da, value
+    );
+    ibd.write_byte(da, value);
 }

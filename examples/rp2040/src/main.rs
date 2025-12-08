@@ -18,9 +18,14 @@ use panic_halt as _;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+// #[allow(unused_imports)]
+// use defmt::{debug, error, info, warn};
+
 // create an alias for our HAL crate
 // (use either 'rp2040_hal' or 'rp2350_hal')
 use rp2040_hal as hal;
+
+use i2c_devices::ht16k33::SegmentedDisplay;
 
 // this trait is required for '400.kHz()'
 use hal::fugit::RateExtU32;
@@ -40,6 +45,8 @@ const XTAL_FREQ_HZ: u32 = 12_000_000;
 /// Entry point to our bare-metal application.
 #[hal::entry]
 fn main() -> ! {
+    info!("program start");
+
     // --------------------------------------------------------------------
     // device-specific setup
     // --------------------------------------------------------------------
@@ -101,7 +108,36 @@ fn main() -> ! {
     };
 
     // use the I²C bus device to do something
-    i2c_devices::emc2101::reset_device_registers(&mut ibd);
+    // i2c_devices::emc2101::reset_device_registers(&mut ibd);
+
+    // mutable allows us to change blink rate and brightness later on
+    let mut sd1 = i2c_devices::ht16k33::Segment7x4 {
+        convert: i2c_devices::ht16k33::convert_7,
+        did: 1,
+        display_mode: i2c_devices::ht16k33::DisplayMode::On,
+        brightness_level: 1,
+    };
+
+    // change blink rate and brightness
+    sd1.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::On);
+    sd1.set_brightness_level(&mut ibd, 1);
+    // write data
+    sd1.show_string(&mut ibd, "12:34");
+
+    // non-mutable is sufficient if we don't want to change display settings
+    let sd2 = i2c_devices::ht16k33::Segment7x4 {
+        convert: i2c_devices::ht16k33::convert_7,
+        did: 2,
+        display_mode: i2c_devices::ht16k33::DisplayMode::BlinkSlow,
+        brightness_level: 8,
+    };
+
+    // write data
+    sd2.show_number(&mut ibd, 3.456);
+
+    // sd1.disable(&mut ibd);
+    // sd1.enable(&mut ibd);
+    // sd1.show_number(&mut ibd, 1.235);
 
     // --------------------------------------------------------------------
     // demo has finished - just loop until reset
