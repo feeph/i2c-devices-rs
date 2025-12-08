@@ -56,6 +56,7 @@ pub fn convert_7(c: char) -> (u8, u8) {
         // 'X' => <unable to display>
         'Y' => (0b0110_1110, 0b0000_0000),
         // 'Z' => <unable to display>
+        '.' => (0b1000_0000, 0b0000_0000),
         ':' => (0b1111_1111, 0b0000_0000),
         // encountered an unknown character
         _ => (0b0000_0000, 0b0000_0000),
