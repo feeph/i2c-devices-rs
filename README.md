@@ -16,6 +16,7 @@ Rust library for various I²C devices.
 | aht20    | temperature & humidity sensor       | AHT20                                                | stub          |
 | at24c0xd | Serial EEPROM                       | AT24C01D, AT24C02D                                   | stub          |
 | emc2101  | temperature sensor & fan controller | EMC2101, EMC2101-R                                   | usable        |
+| ht16k33  | LED matrix controller               | HT16K33                                              | usable        |
 | tca953x  | I/O Expander                        | TCA9536, TCA9537                                     | stub          |
 | tca9548a | I²C bus multiplexer                 | TCA9548A                                             | stub          |
 

@@ -9,6 +9,9 @@
 # Set the default target to match the Cortex-M0+ in the RP2040
 target = "thumbv6m-none-eabi"
 
+[env]
+DEFMT_LOG = "info"
+
 # Target specific options
 [target.thumbv6m-none-eabi]
 # Pass some extra options to rustc, some of which get passed on to the linker.
@@ -29,8 +32,8 @@ rustflags = [
 ]
 
 # This runner will flash a mounted RP2040 in USB Bootloader mode:
-runner = "picotool load --update --verify --execute -t elf"
+# runner = "picotool load --update --verify --execute -t elf"
 
 # This runner will find a supported SWD debug probe and flash your RP2040 over
 # SWD:
-# runner = "probe-rs run --chip RP2040"
+runner = "probe-rs run --chip RP2040"

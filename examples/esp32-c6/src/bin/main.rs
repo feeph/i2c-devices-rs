@@ -29,6 +29,8 @@ use esp_hal::timer::timg::TimerGroup;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+use i2c_devices::ht16k33::SegmentedDisplay;
+
 extern crate alloc;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -111,6 +113,67 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
 
     // use the I²C bus device to do something
     i2c_devices::emc2101::reset_device_registers(&mut ibd);
+
+    // mutable allows us to change blink rate and brightness later on
+    let mut sd0 = i2c_devices::ht16k33::Segment14x4 {
+        convert: i2c_devices::ht16k33::convert_14,
+        did: 0,
+        display_mode: i2c_devices::ht16k33::DisplayMode::BlinkFast,
+        brightness_level: 8,
+    };
+
+    // configure display #0
+    sd0.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::BlinkSlow);
+    sd0.set_brightness_level(&mut ibd, 1);
+    sd0.show_string(&mut ibd, "1234");
+
+    // non-mutable is sufficient if we don't want to change display settings
+    let sd1 = i2c_devices::ht16k33::Segment14x4 {
+        convert: i2c_devices::ht16k33::convert_14,
+        did: 1,
+        display_mode: i2c_devices::ht16k33::DisplayMode::On,
+        brightness_level: 1,
+    };
+
+    // configure display #1
+    sd1.show_buffer(
+        &mut ibd,
+        &[
+            0b11110111,
+            0b0000_0000,
+            0b10001111,
+            0b0001_0010,
+            0b00111001,
+            0b0000_0000,
+            0b00001111,
+            0b0001_0010,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+            0b0000_0000,
+        ],
+    );
+
+    // show different values on display #1
+    sd1.show_string(&mut ibd, "ABCD");
+    Timer::after(Duration::from_secs(2)).await;
+    sd1.show_string(&mut ibd, "EFGH");
+    Timer::after(Duration::from_secs(2)).await;
+    sd1.show_string(&mut ibd, "IJKL");
+
+    // temporarily disable display #0
+    Timer::after(Duration::from_secs(5)).await;
+    sd0.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::Off);
+    Timer::after(Duration::from_secs(2)).await;
+    sd0.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::On);
+
+    // show some numbers on both displays
+    sd0.show_number(&mut ibd, 1.234);
+    sd1.show_number(&mut ibd, -12.34);
 }
 
 // ------------------------------------------------------------------------
