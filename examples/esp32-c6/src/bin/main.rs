@@ -158,18 +158,20 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
         ],
     );
 
-    // let _ = i2c_devices::ht16k33::show_string(&mut ibd, 1, "ABCD", i2c_devices::ht16k33::convert_14);
-    // Timer::after(Duration::from_secs(2)).await;
-    // let _ = i2c_devices::ht16k33::show_string(&mut ibd, 1, "EFGH", i2c_devices::ht16k33::convert_14);
-    // Timer::after(Duration::from_secs(2)).await;
-    // let _ = i2c_devices::ht16k33::show_string(&mut ibd, 1, "IJKL", i2c_devices::ht16k33::convert_14);
+    // show different values on display #1
+    sd1.show_string(&mut ibd, "ABCD");
+    Timer::after(Duration::from_secs(2)).await;
+    sd1.show_string(&mut ibd, "EFGH");
+    Timer::after(Duration::from_secs(2)).await;
+    sd1.show_string(&mut ibd, "IJKL");
 
-    // Timer::after(Duration::from_secs(5)).await;
-    // i2c_devices::ht16k33::set_display_mode(&mut ibd, 1, i2c_devices::ht16k33::DisplayMode::Disabled);
+    // temporarily disable display #0
+    Timer::after(Duration::from_secs(5)).await;
+    sd0.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::Off);
+    Timer::after(Duration::from_secs(2)).await;
+    sd0.set_display_mode(&mut ibd, i2c_devices::ht16k33::DisplayMode::On);
 
-    // Timer::after(Duration::from_secs(2)).await;
-    // i2c_devices::ht16k33::set_display_mode(&mut ibd, 1, i2c_devices::ht16k33::DisplayMode::Enabled);
-
+    // show some numbers on both displays
     sd0.show_number(&mut ibd, 1.234);
     sd1.show_number(&mut ibd, -12.34);
 }
