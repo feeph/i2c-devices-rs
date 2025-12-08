@@ -18,9 +18,6 @@ use panic_halt as _;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
-// #[allow(unused_imports)]
-// use defmt::{debug, error, info, warn};
-
 // create an alias for our HAL crate
 // (use either 'rp2040_hal' or 'rp2350_hal')
 use rp2040_hal as hal;
@@ -45,8 +42,6 @@ const XTAL_FREQ_HZ: u32 = 12_000_000;
 /// Entry point to our bare-metal application.
 #[hal::entry]
 fn main() -> ! {
-    info!("program start");
-
     // --------------------------------------------------------------------
     // device-specific setup
     // --------------------------------------------------------------------
