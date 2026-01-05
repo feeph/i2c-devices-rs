@@ -13,7 +13,7 @@ Rust library for various I²C devices.
 | module   | category                            | compatible with:                                     | support level |
 | -------- | ----------------------------------- | ---------------------------------------------------- | ------------- |
 | ads1x1x  | analog-to-digital converter         | ADS1013, ADS1013, ADS1015, ADS1113, ADS1113, ADS1115 | stub          |
-| aht20    | temperature & humidity sensor       | AHT20                                                | stub          |
+| ahtx0    | temperature & humidity sensor       | AHT10, AHT20                                         | wip           |
 | at24c0xd | Serial EEPROM                       | AT24C01D, AT24C02D                                   | stub          |
 | emc2101  | temperature sensor & fan controller | EMC2101, EMC2101-R                                   | usable        |
 | ht16k33  | LED matrix controller               | HT16K33                                              | usable        |
