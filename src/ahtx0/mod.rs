@@ -24,7 +24,8 @@ pub fn send_calibration_command_aht10<Ibd>(ibd: &mut Ibd)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    hw::send_command(ibd, DEVICE_ADDRESS, [0xE1, 0x08, 0x00]);
+    let aht10_enable: [u8; 3] = [0xE1, 0x08, 0x00];
+    hw::send_command(ibd, DEVICE_ADDRESS, &aht10_enable);
 }
 
 // ------------------------------------------------------------------------
@@ -35,5 +36,6 @@ pub fn send_calibration_command_aht20<Ibd>(ibd: &mut Ibd)
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    hw::send_command(ibd, DEVICE_ADDRESS, [0xBE, 0x08, 0x00]);
+    let aht20_enable: [u8; 3] = [0xBE, 0x08, 0x00];
+    hw::send_command(ibd, DEVICE_ADDRESS, &aht20_enable);
 }

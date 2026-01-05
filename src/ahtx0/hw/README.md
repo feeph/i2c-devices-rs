@@ -1,4 +1,4 @@
-# AHT10/AHT20
+# ASAIR AHT10 & AHT20 Humidity and Temperature Sensor
 
 Important notes from data sheet.
 

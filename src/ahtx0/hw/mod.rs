@@ -9,11 +9,11 @@ use log::{debug, error, info, warn};
 // send a command (e.g. for calibration)
 // ------------------------------------------------------------------------
 
-pub fn send_command<Ibd>(ibd: &mut Ibd, da: u8, command: [u8; 3]) -> bool
+pub fn send_command<Ibd>(ibd: &mut Ibd, da: u8, command: &[u8; 3]) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    debug!("Sending command {:#04X} to {:#04X}.", command, da);
+    debug!("Sending command {:#04X} to {:#04X}.", command[0], da);
     ibd.write_bytes(da, command);
     true
 }
