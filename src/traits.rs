@@ -17,13 +17,22 @@ pub trait I2cBusDevice {
     /// the 'data' into a single byte, e.g. Holtek HT16K33
     fn write_byte(&mut self, da: u8, byte: u8);
 
+    /// TODO deprecate method 'write_bytes(read_register_as_byte)'
     fn write_bytes(&mut self, da: u8, bytes: &[u8]);
 
     /// read a single byte from device register 'dr'
+    /// TODO deprecate method 'write_register_as_byte(read_register_as_byte)'
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8;
 
+    /// read multiple bytes from device register 'dr'
+    fn read_bytes_from_register<const N: usize>(&mut self, da: u8, dr: u8) -> [u8; N];
+
     /// write a single byte to device register 'dr'
+    /// TODO deprecate method 'write_register_as_byte()'
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8);
+
+    /// write multiple bytes to device register 'dr'
+    fn write_bytes_to_register(&mut self, da: u8, dr: u8, bytes: &[u8]);
 
     /// read multiple independent registers in the exact order provided
     ///
@@ -36,5 +45,6 @@ pub trait I2cBusDevice {
     // some functions require a little time to pass
     // the sleep function is hardware-dependent and must be provided by
     // the caller
+    // TODO deprecate method 'sleep_ms' (let the calling code decide how to spend the time)
     fn sleep_ms(&mut self, milliseconds: u32);
 }

@@ -213,11 +213,22 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         rb[0]
     }
 
+    fn read_register_as_bytes<const N: usize>(&mut self, da: u8, dr: u8) -> [u8; N] {
+        let mut rb = [0u8; N];
+
+        // TODO add error handling for read_register_as_bytes()
+        let _ = self.i2c_bus.write_read(da, &[dr], &mut rb);
+
+        // implicit return
+        rb
+    }
+
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
         // TODO add error handling for write_register_as_u8()
         let _ = self.i2c_bus.write(da, &[dr, byte]);
     }
 
+    // TODO rename function: read_multiple_registers_as_u8()
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
         let mut rb = [0u8; N];
 
@@ -242,6 +253,7 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         rb
     }
 
+    // TODO rename function: write_multiple_registers_as_u8()
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for x in values.iter() {
             match self.i2c_bus.write(da, x) {
