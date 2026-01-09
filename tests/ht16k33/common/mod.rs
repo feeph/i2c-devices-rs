@@ -63,7 +63,19 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
         panic!("function not implemented")
     }
 
+    fn read_bytes_from_register<const N: usize>(&mut self, da: u8, _dr: u8) -> [u8; N] {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
     fn write_register_as_byte(&mut self, da: u8, _dr: u8, _byte: u8) {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    fn write_bytes_to_register(&mut self, da: u8, _dr: u8, _bytes: &[u8]) {
         validate_device_address(da);
 
         panic!("function not implemented")
