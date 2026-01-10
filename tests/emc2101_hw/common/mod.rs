@@ -10,6 +10,22 @@ pub struct VirtualI2cBusDevice {
 }
 
 impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    fn write_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8; N]) -> bool {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         validate_device_address(da);
 
@@ -22,22 +38,10 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         panic!("function not implemented")
     }
 
-    fn write_bytes(&mut self, da: u8, _bytes: &[u8]) {
-        validate_device_address(da);
-
-        panic!("function not implemented")
-    }
-
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
         validate_device_address(da);
 
         self.registers[dr as usize].0
-    }
-
-    fn read_bytes_from_register<const N: usize>(&mut self, da: u8, _dr: u8) -> [u8; N] {
-        validate_device_address(da);
-
-        panic!("function not implemented")
     }
 
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
@@ -48,12 +52,6 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         } else {
             panic!("attempted write to read-only register {dr:#02X}")
         }
-    }
-
-    fn write_bytes_to_register(&mut self, da: u8, _dr: u8, _bytes: &[u8]) {
-        validate_device_address(da);
-
-        panic!("function not implemented")
     }
 
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {

@@ -157,6 +157,44 @@ where
     I2c: embedded_hal::i2c::I2c,
     Timer: embedded_hal::delay::DelayNs,
 {
+    /// read the specified number of bytes from the I²C device
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
+
+        let res = self.i2c_bus.read(da, &mut rb);
+        match res {
+            Ok(_) => {
+                debug!("read {} bytes from device {}.", N, da);
+                Some(rb)
+            }
+            Err(_) => {
+                error!("Failed to read {} bytes from device {}!", N, da);
+                None
+            }
+        }
+    }
+
+    /// read the specified number of bytes to the I²C device
+    ///
+    /// returns true if the write succeeded and false if the write fails
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
+        let res = self.i2c_bus.write(da, bytes);
+        match res {
+            Ok(_) => {
+                debug!("Wrote {} bytes to device {}.", N, da);
+                true
+            }
+            Err(_) => {
+                error!("Failed to write {} bytes to device {}!", N, da);
+                false
+            }
+        }
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         let mut buf = [0, 1];
 
@@ -169,10 +207,6 @@ where
 
     fn write_byte(&mut self, da: u8, byte: u8) {
         let _ = self.i2c_bus.write(da, &[byte]);
-    }
-
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]) {
-        let _ = self.i2c_bus.write(da, bytes);
     }
 
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {

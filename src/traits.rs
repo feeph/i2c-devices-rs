@@ -8,6 +8,21 @@ use core::result::Result;
 
 /// read data from and write data to an I²C device
 pub trait I2cBusDevice {
+    /// read the specified number of bytes from the I²C device
+    ///
+    /// returns the specified number of bytes if the read succeeded or a
+    /// null value if the write failed
+    fn read_bytes<const N: usize>(&mut self, _da: u8) -> Option<[u8; N]>;
+
+    /// write the specified number of bytes to the I²C device
+    ///
+    /// returns true if the write succeeded and false if the write fails
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool;
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     /// read a single byte
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str>;
 
@@ -17,22 +32,13 @@ pub trait I2cBusDevice {
     /// the 'data' into a single byte, e.g. Holtek HT16K33
     fn write_byte(&mut self, da: u8, byte: u8);
 
-    /// TODO deprecate method 'write_bytes(read_register_as_byte)'
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]);
-
     /// read a single byte from device register 'dr'
     /// TODO deprecate method 'write_register_as_byte(read_register_as_byte)'
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8;
 
-    /// read multiple bytes from device register 'dr'
-    fn read_bytes_from_register<const N: usize>(&mut self, da: u8, dr: u8) -> [u8; N];
-
     /// write a single byte to device register 'dr'
     /// TODO deprecate method 'write_register_as_byte()'
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8);
-
-    /// write multiple bytes to device register 'dr'
-    fn write_bytes_to_register(&mut self, da: u8, dr: u8, bytes: &[u8]);
 
     /// read multiple independent registers in the exact order provided
     ///

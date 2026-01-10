@@ -11,27 +11,13 @@ pub struct VirtualHt16K33 {
 }
 
 impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
-    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
         validate_device_address(da);
 
         panic!("function not implemented")
     }
 
-    fn write_byte(&mut self, da: u8, byte: u8) {
-        validate_device_address(da);
-
-        let register = byte & 0xF0;
-        let value = byte & 0x0F;
-        match register {
-            0x20 => self.osc = value,
-            0x80 => self.dis = value,
-            0xA0 => self.ris = value,
-            0xE0 => self.dim = value,
-            _ => panic!("invalid register"),
-        }
-    }
-
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]) {
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
         validate_device_address(da);
 
         // validate the first byte, copy the remaining 16
@@ -52,8 +38,33 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
             self.dda[13] = bytes[14];
             self.dda[14] = bytes[15];
             self.dda[15] = bytes[16];
+            true
         } else {
             panic!("invalid write")
+        }
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
+    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    fn write_byte(&mut self, da: u8, byte: u8) {
+        validate_device_address(da);
+
+        let register = byte & 0xF0;
+        let value = byte & 0x0F;
+        match register {
+            0x20 => self.osc = value,
+            0x80 => self.dis = value,
+            0xA0 => self.ris = value,
+            0xE0 => self.dim = value,
+            _ => panic!("invalid register"),
         }
     }
 
@@ -63,19 +74,7 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
         panic!("function not implemented")
     }
 
-    fn read_bytes_from_register<const N: usize>(&mut self, da: u8, _dr: u8) -> [u8; N] {
-        validate_device_address(da);
-
-        panic!("function not implemented")
-    }
-
     fn write_register_as_byte(&mut self, da: u8, _dr: u8, _byte: u8) {
-        validate_device_address(da);
-
-        panic!("function not implemented")
-    }
-
-    fn write_bytes_to_register(&mut self, da: u8, _dr: u8, _bytes: &[u8]) {
         validate_device_address(da);
 
         panic!("function not implemented")

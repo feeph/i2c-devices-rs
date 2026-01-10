@@ -30,8 +30,7 @@ where
     Ibd: crate::traits::I2cBusDevice,
 {
     debug!("Sending command {:#04X} to {:#04X}.", dr, da);
-    ibd.write_bytes_to_register(da, dr, command);
-    true
+    ibd.write_bytes(da, &[dr, command[0], command[1]])
 }
 
 // TODO validate this call is correct
@@ -40,24 +39,23 @@ pub fn get_sensor_status<Ibd>(ibd: &mut Ibd, da: u8) -> u8
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    ibd.read_bytes_from_register::<1>(da, 0x71)[0]
+    ibd.read_bytes::<1>(da).unwrap()[0]
 }
 
 // TODO validate this call is correct
 // (Adafruit's device library indicates a simple read is sufficient)
-pub fn get_sensor_data<Ibd>(ibd: &mut Ibd, da: u8) -> [u8; 8]
+pub fn get_sensor_data<Ibd>(ibd: &mut Ibd, da: u8) -> [u8; 6]
 where
     Ibd: crate::traits::I2cBusDevice,
 {
     // returned values:
     // [<status>, <data0>, <data1>, <data2>, <data3>, <data4>, <data5>, <crc>]
-    ibd.read_bytes_from_register::<8>(da, 0x71)
+    ibd.read_bytes::<6>(da).unwrap()
 }
 
-pub fn request_measurement<Ibd>(ibd: &mut Ibd, da: u8)
+pub fn request_measurement<Ibd>(ibd: &mut Ibd, da: u8) -> bool
 where
     Ibd: crate::traits::I2cBusDevice,
 {
-    // send measurement command (always followed by 0x33, 0x00)
-    ibd.write_bytes_to_register(da, 0xAC, &[0x33, 0x00]);
+    ibd.write_bytes(da, &[0xAC, 0x33, 0x00])
 }

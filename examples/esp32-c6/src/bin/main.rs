@@ -20,6 +20,7 @@
     holding buffers for the duration of a data transfer."
 )]
 
+use core::option::Option;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
@@ -185,6 +186,38 @@ struct I2cBusDevice<'a, Dm: esp_hal::DriverMode> {
 }
 
 impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a, Dm> {
+    /// read the specified number of bytes from the I²C device
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
+
+        let res = self.i2c_bus.read(da, &mut rb);
+        match res {
+            Ok(_) => {
+                debug!("read {} bytes from device {}", N, da);
+                Some(rb)
+            }
+            Err(_) => {
+                error!("Failed to read {} bytes from device {}!", N, da);
+                None
+            }
+        }
+    }
+
+    /// read the specified number of bytes to the I²C device
+    ///
+    /// returns true if the write succeeded and false if the write fails
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
+        let res = self.i2c_bus.write(da, bytes);
+        match res {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         let mut buf = [0, 1];
 
@@ -199,10 +232,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         let _ = self.i2c_bus.write(da, &[byte]);
     }
 
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]) {
-        let _ = self.i2c_bus.write(da, bytes);
-    }
-
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
         let mut rb = [0u8; 1];
 
@@ -211,16 +240,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
 
         // implicit return
         rb[0]
-    }
-
-    fn read_register_as_bytes<const N: usize>(&mut self, da: u8, dr: u8) -> [u8; N] {
-        let mut rb = [0u8; N];
-
-        // TODO add error handling for read_register_as_bytes()
-        let _ = self.i2c_bus.write_read(da, &[dr], &mut rb);
-
-        // implicit return
-        rb
     }
 
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {

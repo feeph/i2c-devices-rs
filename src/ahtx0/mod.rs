@@ -79,17 +79,15 @@ where
 ///    and at least 100ms have passed
 /// 2. measurement was requested
 ///    and at least 80ms have passed before requesting the result
-pub fn get_sensor_data<Ibd>(ibd: &mut Ibd) -> Option<[u8; 6]>
+pub fn get_sensor_data<Ibd>(ibd: &mut Ibd) -> Option<[u8; 4]>
 where
     Ibd: crate::traits::I2cBusDevice,
 {
     let result = hw::get_sensor_data(ibd, DEVICE_ADDRESS);
 
     let status = result[0];
-    let data = [
-        result[1], result[2], result[3], result[4], result[5], result[6],
-    ];
-    let crc = result[7];
+    let data = [result[1], result[2], result[3], result[4]];
+    let crc = result[5];
 
     if is_initialized(status) && !is_busy(status) && validate_data(data, crc) {
         Some(data)
@@ -174,14 +172,14 @@ fn device_is_waiting() {
 
 // ------------------------------------------------------------------------
 
-fn validate_data(_data: [u8; 6], _crc: u8) -> bool {
+fn validate_data(_data: [u8; 4], _crc: u8) -> bool {
     // TODO implement CRC validation logic
     true
 }
 
 #[test]
 fn data_is_valid_pass() {
-    let computed = validate_data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0xFF);
+    let computed = validate_data([0x00, 0x00, 0x00, 0x00], 0xFF);
     let expected = true;
 
     assert_eq!(computed, expected);
@@ -189,7 +187,7 @@ fn data_is_valid_pass() {
 
 #[test]
 fn data_is_valid_fail() {
-    let computed = validate_data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0xFF);
+    let computed = validate_data([0x00, 0x00, 0x00, 0x00], 0xFF);
     let expected = true;
 
     assert_eq!(computed, expected);
