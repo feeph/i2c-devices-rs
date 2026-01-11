@@ -30,6 +30,7 @@ use esp_hal::timer::timg::TimerGroup;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+use i2c_devices::ahtx0::AHTx0;
 use i2c_devices::ht16k33::SegmentedDisplay;
 
 extern crate alloc;
@@ -112,8 +113,33 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
         i2c_bus: &mut i2c_bus,
     };
 
+    // EMC2101
+    // -------
+
     // use the I²C bus device to do something
     i2c_devices::emc2101::reset_device_registers(&mut ibd);
+
+    // AHT20
+    // -----
+
+    let mut aht20 = i2c_devices::ahtx0::create_aht20();
+
+    let _ = aht20.trigger_reset(&mut ibd);
+    Timer::after(Duration::from_millis(500)).await;
+
+    let _ = aht20.trigger_calibration(&mut ibd);
+    Timer::after(Duration::from_millis(500)).await;
+
+    let _ = aht20.trigger_measurement(&mut ibd);
+
+    // need to wait before reading the data
+    Timer::after(Duration::from_millis(500)).await;
+    let data2 = aht20.get_sensor_data(&mut ibd).unwrap(); // measurement has completed
+    info!("temperature: {:1.2}°C", data2.temperature);
+    info!("humidity:    {:1.2}% rH", data2.humidity);
+
+    // HT16K33
+    // -----
 
     // mutable allows us to change blink rate and brightness later on
     let mut sd0 = i2c_devices::ht16k33::Segment14x4 {

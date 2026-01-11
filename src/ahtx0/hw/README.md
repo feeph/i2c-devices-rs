@@ -2,6 +2,11 @@
 
 Important notes from data sheet.
 
+documentation:
+
+- https://asairsensors.com/wp-content/uploads/2021/09/Data-Sheet-AHT20-Humidity-and-Temperature-Sensor-ASAIR-V1.0.03.pdf
+- https://github.com/enjoyneering/AHTxx/blob/main/src/AHTxx.cpp
+
 ## Initialization delay
 
 After power up sensor takes up to 20ms to become ready
