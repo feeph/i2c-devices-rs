@@ -122,9 +122,9 @@ fn get_sensor_data_pass() {
 #[test]
 fn get_sensor_data_busy() {
     let mut vbd = create_ahtx0([0x9C, 0x44, 0xF2, 0xF5, 0xF9, 0xD6, 0x00]);
-    let mut aht10 = i2c_devices::ahtx0::create_aht10();
+    let mut aht20 = i2c_devices::ahtx0::create_aht20();
 
-    let computed = aht10.get_sensor_data(&mut vbd);
+    let computed = aht20.get_sensor_data(&mut vbd);
     let expected = Err(SensorState::Busy);
 
     assert_eq!(computed, expected);
