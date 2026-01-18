@@ -20,6 +20,7 @@
     holding buffers for the duration of a data transfer."
 )]
 
+use core::option::Option;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
@@ -29,6 +30,8 @@ use esp_hal::timer::timg::TimerGroup;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+// import required traits
+use i2c_devices::ahtx0::AHTx0;
 use i2c_devices::ht16k33::SegmentedDisplay;
 
 extern crate alloc;
@@ -111,8 +114,43 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
         i2c_bus: &mut i2c_bus,
     };
 
+    // EMC2101
+    // -------
+
     // use the I²C bus device to do something
     i2c_devices::emc2101::reset_device_registers(&mut ibd);
+
+    // AHT20
+    // -----
+
+    let mut aht20 = i2c_devices::ahtx0::create_aht20();
+
+    // need to wait at least 100ms after initial power up
+    // (sensor state switches to 'Idle')
+    Timer::after(Duration::from_millis(110)).await;
+
+    // trigger a measurement
+    // (sensor state switches from 'Idle' to 'Busy')
+    let _ = aht20.trigger_measurement(&mut ibd);
+
+    // need to wait at least 80ms for the measurement to complete
+    // (sensor state switches from 'Busy' to 'Idle')
+    Timer::after(Duration::from_millis(90)).await;
+
+    // get the measured humidity and temperature values
+    let result = aht20.get_sensor_data(&mut ibd);
+    match result {
+        Ok(x) => {
+            info!("temperature: {:1.2}°C", x.temperature);
+            info!("humidity:    {:1.2}% rH", x.humidity);
+        }
+        Err(x) => {
+            error!("measurement failed: {:?}", x)
+        }
+    }
+
+    // HT16K33
+    // -----
 
     // mutable allows us to change blink rate and brightness later on
     let mut sd0 = i2c_devices::ht16k33::Segment14x4 {
@@ -185,6 +223,38 @@ struct I2cBusDevice<'a, Dm: esp_hal::DriverMode> {
 }
 
 impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a, Dm> {
+    /// read the specified number of bytes from the I²C device
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
+
+        let res = self.i2c_bus.read(da, &mut rb);
+        match res {
+            Ok(_) => {
+                debug!("read {} bytes from device {}", N, da);
+                Some(rb)
+            }
+            Err(_) => {
+                error!("Failed to read {} bytes from device {}!", N, da);
+                None
+            }
+        }
+    }
+
+    /// read the specified number of bytes to the I²C device
+    ///
+    /// returns true if the write succeeded and false if the write fails
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
+        let res = self.i2c_bus.write(da, bytes);
+        match res {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         let mut buf = [0, 1];
 
@@ -197,10 +267,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
 
     fn write_byte(&mut self, da: u8, byte: u8) {
         let _ = self.i2c_bus.write(da, &[byte]);
-    }
-
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]) {
-        let _ = self.i2c_bus.write(da, bytes);
     }
 
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
@@ -218,6 +284,7 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         let _ = self.i2c_bus.write(da, &[dr, byte]);
     }
 
+    // TODO rename function: read_multiple_registers_as_u8()
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
         let mut rb = [0u8; N];
 
@@ -242,6 +309,7 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         rb
     }
 
+    // TODO rename function: write_multiple_registers_as_u8()
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for x in values.iter() {
             match self.i2c_bus.write(da, x) {

@@ -15,6 +15,9 @@ cargo llvm-cov nextest --lcov --output-path ./target/lcov.info
 ```
 */
 
+mod aht10;
+mod aht20;
+mod ahtx0_hw;
 mod emc2101;
 mod emc2101_hw;
 mod ht16k33;

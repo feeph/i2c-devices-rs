@@ -9,7 +9,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod ads1x1x;
-pub mod aht20;
+pub mod ahtx0;
 pub mod at24c0xd;
 pub mod emc2101;
 pub mod ht16k33;

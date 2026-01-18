@@ -22,6 +22,9 @@ use log::{debug, error, info, warn};
 // (use either 'rp2040_hal' or 'rp2350_hal')
 use rp2040_hal as hal;
 
+// import required traits
+use embedded_hal::delay::DelayNs;
+use i2c_devices::ahtx0::AHTx0;
 use i2c_devices::ht16k33::SegmentedDisplay;
 
 // this trait is required for '400.kHz()'
@@ -90,7 +93,7 @@ fn main() -> ! {
         &clocks.system_clock,
     );
 
-    let timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
+    let mut timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
     // --------------------------------------------------------------------
     // use library
@@ -102,8 +105,43 @@ fn main() -> ! {
         timer,
     };
 
+    // EMC2101
+    // -------
+
     // use the I²C bus device to do something
     i2c_devices::emc2101::reset_device_registers(&mut ibd);
+
+    // AHT20
+    // -----
+
+    let mut aht20 = i2c_devices::ahtx0::create_aht20();
+
+    // need to wait at least 100ms after initial power up
+    // (sensor state switches to 'Idle')
+    timer.delay_ms(110);
+
+    // trigger a measurement
+    // (sensor state switches from 'Idle' to 'Busy')
+    let _ = aht20.trigger_measurement(&mut ibd);
+
+    // need to wait at least 80ms for the measurement to complete
+    // (sensor state switches from 'Busy' to 'Idle')
+    timer.delay_ms(90);
+
+    // get the measured humidity and temperature values
+    let result = aht20.get_sensor_data(&mut ibd);
+    match result {
+        Ok(x) => {
+            info!("temperature: {:1.2}°C", x.temperature);
+            info!("humidity:    {:1.2}% rH", x.humidity);
+        }
+        Err(x) => {
+            error!("measurement failed: {:?}", x)
+        }
+    }
+
+    // HT16K33
+    // -----
 
     // mutable allows us to change blink rate and brightness later on
     let mut sd1 = i2c_devices::ht16k33::Segment7x4 {
@@ -157,6 +195,44 @@ where
     I2c: embedded_hal::i2c::I2c,
     Timer: embedded_hal::delay::DelayNs,
 {
+    /// read the specified number of bytes from the I²C device
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
+
+        let res = self.i2c_bus.read(da, &mut rb);
+        match res {
+            Ok(_) => {
+                debug!("read {} bytes from device {}.", N, da);
+                Some(rb)
+            }
+            Err(_) => {
+                error!("Failed to read {} bytes from device {}!", N, da);
+                None
+            }
+        }
+    }
+
+    /// read the specified number of bytes to the I²C device
+    ///
+    /// returns true if the write succeeded and false if the write fails
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
+        let res = self.i2c_bus.write(da, bytes);
+        match res {
+            Ok(_) => {
+                debug!("Wrote {} bytes to device {}.", N, da);
+                true
+            }
+            Err(_) => {
+                error!("Failed to write {} bytes to device {}!", N, da);
+                false
+            }
+        }
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         let mut buf = [0, 1];
 
@@ -169,10 +245,6 @@ where
 
     fn write_byte(&mut self, da: u8, byte: u8) {
         let _ = self.i2c_bus.write(da, &[byte]);
-    }
-
-    fn write_bytes(&mut self, da: u8, bytes: &[u8]) {
-        let _ = self.i2c_bus.write(da, bytes);
     }
 
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {

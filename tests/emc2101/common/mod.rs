@@ -10,6 +10,22 @@ pub struct VirtualI2cBusDevice {
 }
 
 impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
+    fn read_bytes<const N: usize>(&mut self, da: u8) -> Option<[u8; N]> {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    fn write_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8; N]) -> bool {
+        validate_device_address(da);
+
+        panic!("function not implemented")
+    }
+
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
+
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
         validate_device_address(da);
 
@@ -17,12 +33,6 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
     }
 
     fn write_byte(&mut self, da: u8, _byte: u8) {
-        validate_device_address(da);
-
-        panic!("function not implemented")
-    }
-
-    fn write_bytes(&mut self, da: u8, _bytes: &[u8]) {
         validate_device_address(da);
 
         panic!("function not implemented")
