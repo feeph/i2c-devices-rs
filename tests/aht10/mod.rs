@@ -1,6 +1,10 @@
 /*
-    low-level integration tests for AHTx0
+    high-level integration tests for AHT10
     (using 'i2c_devices::ahtx0::hw')
+
+    differences between AHT10 & AHT20:
+    - sensors use a different calibration command
+    - AHT10 does not calculate a CRC on sensor data
 */
 
 mod common;
