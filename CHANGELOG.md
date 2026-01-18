@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/feeph/i2c-devices-rs/compare/i2c_devices-v0.1.0...i2c_devices-v0.2.0) (2026-01-18)
+
+
+### Features
+
+* provide initial support for ahtx0 ([#16](https://github.com/feeph/i2c-devices-rs/issues/16)) ([763e8c8](https://github.com/feeph/i2c-devices-rs/commit/763e8c81aa605da2396456dff338c11257063f3b))
+
 ## 0.1.0 (2025-12-08)
 
 
