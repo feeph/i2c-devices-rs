@@ -30,6 +30,7 @@ use esp_hal::timer::timg::TimerGroup;
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
 
+// import required traits
 use i2c_devices::ahtx0::AHTx0;
 use i2c_devices::ht16k33::SegmentedDisplay;
 
@@ -124,19 +125,29 @@ pub async fn i2c_task(mut i2c_bus: esp_hal::i2c::master::I2c<'static, esp_hal::B
 
     let mut aht20 = i2c_devices::ahtx0::create_aht20();
 
-    let _ = aht20.trigger_reset(&mut ibd);
-    Timer::after(Duration::from_millis(500)).await;
+    // need to wait at least 100ms after initial power up
+    // (sensor state switches to 'Idle')
+    Timer::after(Duration::from_millis(110)).await;
 
-    let _ = aht20.trigger_calibration(&mut ibd);
-    Timer::after(Duration::from_millis(500)).await;
-
+    // trigger a measurement
+    // (sensor state switches from 'Idle' to 'Busy')
     let _ = aht20.trigger_measurement(&mut ibd);
 
-    // need to wait before reading the data
-    Timer::after(Duration::from_millis(500)).await;
-    let data2 = aht20.get_sensor_data(&mut ibd).unwrap(); // measurement has completed
-    info!("temperature: {:1.2}°C", data2.temperature);
-    info!("humidity:    {:1.2}% rH", data2.humidity);
+    // need to wait at least 80ms for the measurement to complete
+    // (sensor state switches from 'Busy' to 'Idle')
+    Timer::after(Duration::from_millis(90)).await;
+
+    // get the measured humidity and temperature values
+    let result = aht20.get_sensor_data(&mut ibd);
+    match result {
+        Ok(x) => {
+            info!("temperature: {:1.2}°C", x.temperature);
+            info!("humidity:    {:1.2}% rH", x.humidity);
+        }
+        Err(x) => {
+            error!("measurement failed: {:?}", x)
+        }
+    }
 
     // HT16K33
     // -----
