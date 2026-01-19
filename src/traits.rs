@@ -49,10 +49,6 @@ pub trait I2cBusDevice {
     // to refactor
     // --------------------------------------------------------------------
 
-    /// write a single byte to device register 'dr'
-    /// TODO deprecate method 'write_register_as_byte()'
-    fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8);
-
     /// write two independent registers in the exact order provided
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]);
 

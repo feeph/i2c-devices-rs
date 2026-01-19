@@ -40,12 +40,6 @@ impl i2c_devices::I2cBusDevice for VirtualAHTx0 {
     // to refactor
     // --------------------------------------------------------------------
 
-    fn write_register_as_byte(&mut self, da: u8, _dr: u8, _byte: u8) {
-        validate_device_address(da);
-
-        panic!("write_register_as_byte(): function not implemented")
-    }
-
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _values: [[u8; 2]; N]) {
         validate_device_address(da);
 

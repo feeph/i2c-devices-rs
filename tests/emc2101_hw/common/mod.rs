@@ -52,10 +52,6 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
     // to refactor
     // --------------------------------------------------------------------
 
-    fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
-        self.write_bytes(da, &[dr, byte]);
-    }
-
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for bytes in values.iter() {
             self.write_bytes(da, bytes);

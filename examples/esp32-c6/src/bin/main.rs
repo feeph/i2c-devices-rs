@@ -265,11 +265,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
     // to refactor
     // --------------------------------------------------------------------
 
-    fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
-        // TODO add error handling for write_register_as_u8()
-        let _ = self.i2c_bus.write(da, &[dr, byte]);
-    }
-
     // TODO rename function: write_multiple_registers_as_u8()
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for x in values.iter() {
