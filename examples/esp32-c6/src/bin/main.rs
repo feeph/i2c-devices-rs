@@ -265,21 +265,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
     // to refactor
     // --------------------------------------------------------------------
 
-    // TODO rename function: write_multiple_registers_as_u8()
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
-        for x in values.iter() {
-            match self.i2c_bus.write(da, x) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully wrote register '{0:#04X}' (value: {1:#04X}).",
-                        x[0], x[1]
-                    );
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason}", x[0]),
-            }
-        }
-    }
-
     // some functions require a little time to pass
     // the sleep function is hardware-dependent and must be provided by
     // the caller

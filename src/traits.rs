@@ -49,9 +49,6 @@ pub trait I2cBusDevice {
     // to refactor
     // --------------------------------------------------------------------
 
-    /// write two independent registers in the exact order provided
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]);
-
     // some functions require a little time to pass
     // the sleep function is hardware-dependent and must be provided by
     // the caller

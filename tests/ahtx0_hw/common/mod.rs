@@ -40,12 +40,6 @@ impl i2c_devices::I2cBusDevice for VirtualAHTx0 {
     // to refactor
     // --------------------------------------------------------------------
 
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _values: [[u8; 2]; N]) {
-        validate_device_address(da);
-
-        panic!("write_multibyte_register_as_u8(): function not implemented")
-    }
-
     // some hardware functions require a little time to pass
     // - functions that sleep mention this fact in their documentation
     // - sleeping is hardware-dependent, no_std provides no abstraction

@@ -243,20 +243,6 @@ where
     // to refactor
     // --------------------------------------------------------------------
 
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
-        for x in values.iter() {
-            match self.i2c_bus.write(da, x) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully wrote register '{0:#04X}' (value: {1:#04X}).",
-                        x[0], x[1]
-                    );
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason:?}", x[0]),
-            }
-        }
-    }
-
     // some hardware functions require a little time to pass
     // - functions that sleep mention this fact in their documentation
     // - sleeping is hardware-dependent, no_std provides no abstraction
