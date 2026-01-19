@@ -265,10 +265,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         }
     }
 
-    fn write_byte(&mut self, da: u8, byte: u8) {
-        let _ = self.i2c_bus.write(da, &[byte]);
-    }
-
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
         let mut rb = [0u8; 1];
 

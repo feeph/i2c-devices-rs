@@ -26,12 +26,6 @@ pub trait I2cBusDevice {
     /// read a single byte
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str>;
 
-    /// send a single byte
-    ///
-    /// this function is useful for devices that combine the 'register' and
-    /// the 'data' into a single byte, e.g. Holtek HT16K33
-    fn write_byte(&mut self, da: u8, byte: u8);
-
     /// read a single byte from device register 'dr'
     /// TODO deprecate method 'write_register_as_byte(read_register_as_byte)'
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8;
