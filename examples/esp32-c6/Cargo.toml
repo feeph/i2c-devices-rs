@@ -65,7 +65,9 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
 
 critical-section = "1.2.0"
 static_cell      = "2.1.1"
-i2c_devices = { version = "0.1.0", path = "../..", default-features = false }
+# uses 'any' version to avoid conflicts with release-please
+# (replace with a specific version in real code outside this repository)
+i2c_devices = { version = "*", path = "../..", default-features = false }
 
 
 [profile.dev]

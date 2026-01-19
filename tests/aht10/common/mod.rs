@@ -30,45 +30,15 @@ impl i2c_devices::I2cBusDevice for VirtualAHTx0 {
         }
     }
 
-    // --------------------------------------------------------------------
-    // to refactor
-    // --------------------------------------------------------------------
-
-    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8]) -> Option<[u8; N]> {
         validate_device_address(da);
 
         panic!("read_byte(): function not implemented")
     }
 
-    fn write_byte(&mut self, da: u8, _byte: u8) {
-        validate_device_address(da);
-
-        panic!("write_byte(): function not implemented");
-    }
-
-    fn read_register_as_byte(&mut self, da: u8, _dr: u8) -> u8 {
-        validate_device_address(da);
-
-        panic!("read_register_as_byte(): function not implemented")
-    }
-
-    fn write_register_as_byte(&mut self, da: u8, _dr: u8, _byte: u8) {
-        validate_device_address(da);
-
-        panic!("write_register_as_byte(): function not implemented")
-    }
-
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _dr: [u8; N]) -> [u8; N] {
-        validate_device_address(da);
-
-        panic!("read_multibyte_register_as_u8(): function not implemented")
-    }
-
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, _values: [[u8; 2]; N]) {
-        validate_device_address(da);
-
-        panic!("write_multibyte_register_as_u8(): function not implemented")
-    }
+    // --------------------------------------------------------------------
+    // to refactor
+    // --------------------------------------------------------------------
 
     // some hardware functions require a little time to pass
     // - functions that sleep mention this fact in their documentation

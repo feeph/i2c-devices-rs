@@ -229,73 +229,19 @@ where
         }
     }
 
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8]) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
+
+        // TODO add error handling for read_register_as_u8()
+        let _ = self.i2c_bus.write_read(da, bytes, &mut rb);
+
+        // implicit return
+        Some(rb)
+    }
+
     // --------------------------------------------------------------------
     // to refactor
     // --------------------------------------------------------------------
-
-    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
-        let mut buf = [0, 1];
-
-        let res = self.i2c_bus.read(da, &mut buf);
-        match res {
-            Ok(_) => Ok(buf[0]),
-            Err(_) => Err(""),
-        }
-    }
-
-    fn write_byte(&mut self, da: u8, byte: u8) {
-        let _ = self.i2c_bus.write(da, &[byte]);
-    }
-
-    fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
-        let mut rb = [0u8; 1];
-
-        // TODO add error handling for read_register_as_u8()
-        let _ = self.i2c_bus.write_read(da, &[dr], &mut rb);
-
-        // implicit return
-        rb[0]
-    }
-
-    fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
-        // TODO add error handling for write_register_as_u8()
-        let _ = self.i2c_bus.write(da, &[dr, byte]);
-    }
-
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
-        let mut rb = [0u8; N];
-
-        for (i, register) in dr.iter().enumerate() {
-            let mut v = [0; 1];
-            match self.i2c_bus.write_read(da, &[*register], &mut v) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully read register '{0:#04X}' (value: {1:#04X}).",
-                        dr[i], rb[i]
-                    );
-                    rb[i] = v[0];
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason:?}", dr[i]),
-            }
-        }
-
-        // implicit return
-        rb
-    }
-
-    fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
-        for x in values.iter() {
-            match self.i2c_bus.write(da, x) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully wrote register '{0:#04X}' (value: {1:#04X}).",
-                        x[0], x[1]
-                    );
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason:?}", x[0]),
-            }
-        }
-    }
 
     // some hardware functions require a little time to pass
     // - functions that sleep mention this fact in their documentation
