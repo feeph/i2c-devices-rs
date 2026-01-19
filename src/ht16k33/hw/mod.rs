@@ -52,7 +52,7 @@ where
             "Setting oscillator mode on {0:#04X} to {1:#04X}.",
             da, value
         );
-        ibd.write_byte(da, value);
+        ibd.write_bytes(da, &[value]);
         true
     } else {
         error!("Oscillator mode must be in range 0 ≤ x ≤ 1");
@@ -100,7 +100,7 @@ where
     if value <= 15 {
         let value = 0x80 | value;
         debug!("Setting blink rate on {0:#04X} to {1:#04X}.", da, value);
-        ibd.write_byte(da, value);
+        ibd.write_bytes(da, &[value]);
         true
     } else {
         error!("Blink rate must be in range 0 ≤ x ≤ 15");
@@ -123,7 +123,7 @@ where
     Ibd: crate::traits::I2cBusDevice,
 {
     if value <= 3 {
-        ibd.write_byte(da, 0xA0 | value);
+        ibd.write_bytes(da, &[0xA0 | value]);
         true
     } else {
         error!("Output pin select must be in range 0 ≤ x ≤ 3");
@@ -155,7 +155,7 @@ where
             "Setting brightness level on {0:#04X} to {1:#04X}.",
             da, value
         );
-        ibd.write_byte(da, value);
+        ibd.write_bytes(da, &[value]);
         true
     } else {
         error!("Brightness level must be in range 0 ≤ x ≤ 15");
