@@ -2,7 +2,7 @@
     public traits
 */
 
-use core::result::Result;
+use core::option::Option;
 
 // TODO provide device-agnostic error types (enum?)
 
@@ -48,9 +48,6 @@ pub trait I2cBusDevice {
     // --------------------------------------------------------------------
     // to refactor
     // --------------------------------------------------------------------
-
-    /// read a single byte
-    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str>;
 
     /// write a single byte to device register 'dr'
     /// TODO deprecate method 'write_register_as_byte()'

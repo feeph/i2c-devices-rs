@@ -243,16 +243,6 @@ where
     // to refactor
     // --------------------------------------------------------------------
 
-    fn read_byte(&mut self, da: u8) -> Result<u8, &'static str> {
-        let mut buf = [0, 1];
-
-        let res = self.i2c_bus.read(da, &mut buf);
-        match res {
-            Ok(_) => Ok(buf[0]),
-            Err(_) => Err(""),
-        }
-    }
-
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
         // TODO add error handling for write_register_as_u8()
         let _ = self.i2c_bus.write(da, &[dr, byte]);
