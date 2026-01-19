@@ -248,27 +248,6 @@ where
         let _ = self.i2c_bus.write(da, &[dr, byte]);
     }
 
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
-        let mut rb = [0u8; N];
-
-        for (i, register) in dr.iter().enumerate() {
-            let mut v = [0; 1];
-            match self.i2c_bus.write_read(da, &[*register], &mut v) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully read register '{0:#04X}' (value: {1:#04X}).",
-                        dr[i], rb[i]
-                    );
-                    rb[i] = v[0];
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason:?}", dr[i]),
-            }
-        }
-
-        // implicit return
-        rb
-    }
-
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for x in values.iter() {
             match self.i2c_bus.write(da, x) {

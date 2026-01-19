@@ -53,11 +53,6 @@ pub trait I2cBusDevice {
     /// TODO deprecate method 'write_register_as_byte()'
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8);
 
-    /// read multiple independent registers in the exact order provided
-    ///
-    /// returns the register's values in exactly the same order
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N];
-
     /// write two independent registers in the exact order provided
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]);
 

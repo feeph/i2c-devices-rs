@@ -56,19 +56,6 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         self.write_bytes(da, &[dr, byte]);
     }
 
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
-        validate_device_address(da);
-
-        let mut rb = [0u8; N];
-
-        for (i, register) in dr.iter().enumerate() {
-            rb[i] = self.registers[*register as usize].0;
-        }
-
-        // implicit return
-        rb
-    }
-
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for bytes in values.iter() {
             self.write_bytes(da, bytes);

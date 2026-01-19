@@ -270,31 +270,6 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         let _ = self.i2c_bus.write(da, &[dr, byte]);
     }
 
-    // TODO rename function: read_multiple_registers_as_u8()
-    fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
-        let mut rb = [0u8; N];
-
-        // it's a bit overkill to use a loop for two iterations but that way we
-        // avoid code duplication and it opens up the possibility of reading an
-        // arbitrary number of values
-        for (i, register) in dr.iter().enumerate() {
-            let mut v = [0; 1];
-            match self.i2c_bus.write_read(da, &[*register], &mut v) {
-                Ok(_) => {
-                    debug!(
-                        "Successfully read register '{0:#04X}' (value: {1:#04X}).",
-                        dr[i], rb[i]
-                    );
-                    rb[i] = v[0];
-                }
-                Err(reason) => warn!("Failed to read register '{0:#04X}': {reason}", dr[i]),
-            }
-        }
-
-        // implicit return
-        rb
-    }
-
     // TODO rename function: write_multiple_registers_as_u8()
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
         for x in values.iter() {
