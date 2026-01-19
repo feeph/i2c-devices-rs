@@ -2,7 +2,7 @@
     common I²C-related functions
 */
 
-use core::result::Result::{Err, Ok};
+use core::option::Option::{None, Some};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -21,17 +21,17 @@ where
     // the I²C bus master is always present (address 0)
     d[0] = true;
 
-    for addr in 1..=127u8 {
-        debug!("Scanning for I²C device at address {addr}.");
+    for da in 1..=127u8 {
+        debug!("Scanning for I²C device at address {da}.");
 
-        let res = ibd.read_byte(addr);
+        let res = ibd.read_bytes::<1>(da);
         match res {
-            Ok(_) => {
-                d[addr as usize] = true;
-                debug!("Found an I²C device at address {addr}.");
+            Some(_) => {
+                d[da as usize] = true;
+                debug!("Found an I²C device at address {da}.");
             }
-            Err(_) => {
-                debug!("Unable to find a device at address {addr}.");
+            None => {
+                debug!("Unable to find a device at address {da}.");
             }
         }
     }
