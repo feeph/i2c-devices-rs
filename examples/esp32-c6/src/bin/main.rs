@@ -251,6 +251,12 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         }
     }
 
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8]) -> Option<[u8; N]> {
+        validate_device_address(da);
+
+        panic!("read_byte(): function not implemented")
+    }
+
     // --------------------------------------------------------------------
     // to refactor
     // --------------------------------------------------------------------

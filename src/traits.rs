@@ -19,6 +19,13 @@ pub trait I2cBusDevice {
     /// returns true if the write succeeded and false if the write fails
     fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool;
 
+    /// write the specified number of bytes to the I²C device and then
+    /// read the specified number of bytes from the I²C device
+    ///
+    /// returns the specified number of bytes if the read succeeded or a
+    /// null value if the write failed
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8]) -> Option<[u8; N]>;
+
     // --------------------------------------------------------------------
     // to refactor
     // --------------------------------------------------------------------
