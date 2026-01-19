@@ -253,16 +253,6 @@ where
         }
     }
 
-    fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
-        let mut rb = [0u8; 1];
-
-        // TODO add error handling for read_register_as_u8()
-        let _ = self.i2c_bus.write_read(da, &[dr], &mut rb);
-
-        // implicit return
-        rb[0]
-    }
-
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
         // TODO add error handling for write_register_as_u8()
         let _ = self.i2c_bus.write(da, &[dr, byte]);

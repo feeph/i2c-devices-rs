@@ -52,10 +52,6 @@ pub trait I2cBusDevice {
     /// read a single byte
     fn read_byte(&mut self, da: u8) -> Result<u8, &'static str>;
 
-    /// read a single byte from device register 'dr'
-    /// TODO deprecate method 'write_register_as_byte(read_register_as_byte)'
-    fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8;
-
     /// write a single byte to device register 'dr'
     /// TODO deprecate method 'write_register_as_byte()'
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8);

@@ -58,10 +58,6 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         panic!("function not implemented")
     }
 
-    fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
-        self.write_and_read_bytes::<1>(da, &[dr]).unwrap()[0]
-    }
-
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
         self.write_bytes(da, &[dr, byte]);
     }
