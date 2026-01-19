@@ -20,27 +20,42 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
     fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
         validate_device_address(da);
 
-        // validate the first byte, copy the remaining 16
-        if bytes[0] == 0x00 {
-            self.dda[0] = bytes[1];
-            self.dda[1] = bytes[2];
-            self.dda[2] = bytes[3];
-            self.dda[3] = bytes[4];
-            self.dda[4] = bytes[5];
-            self.dda[5] = bytes[6];
-            self.dda[6] = bytes[7];
-            self.dda[7] = bytes[8];
-            self.dda[8] = bytes[9];
-            self.dda[9] = bytes[10];
-            self.dda[10] = bytes[11];
-            self.dda[11] = bytes[12];
-            self.dda[12] = bytes[13];
-            self.dda[13] = bytes[14];
-            self.dda[14] = bytes[15];
-            self.dda[15] = bytes[16];
+        if bytes.len() == 1 {
+            let register = bytes[0] & 0xF0;
+            let value = bytes[0] & 0x0F;
+            match register {
+                0x20 => self.osc = value,
+                0x80 => self.dis = value,
+                0xA0 => self.ris = value,
+                0xE0 => self.dim = value,
+                _ => panic!("invalid register"),
+            }
             true
+        } else if bytes.len() == 17 {
+            // validate the first byte, copy the remaining 16
+            if bytes[0] == 0x00 {
+                self.dda[0] = bytes[1];
+                self.dda[1] = bytes[2];
+                self.dda[2] = bytes[3];
+                self.dda[3] = bytes[4];
+                self.dda[4] = bytes[5];
+                self.dda[5] = bytes[6];
+                self.dda[6] = bytes[7];
+                self.dda[7] = bytes[8];
+                self.dda[8] = bytes[9];
+                self.dda[9] = bytes[10];
+                self.dda[10] = bytes[11];
+                self.dda[11] = bytes[12];
+                self.dda[12] = bytes[13];
+                self.dda[13] = bytes[14];
+                self.dda[14] = bytes[15];
+                self.dda[15] = bytes[16];
+                true
+            } else {
+                panic!("invalid write")
+            }
         } else {
-            panic!("invalid write")
+            panic!("invalid byte length")
         }
     }
 
@@ -55,17 +70,7 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
     }
 
     fn write_byte(&mut self, da: u8, byte: u8) {
-        validate_device_address(da);
-
-        let register = byte & 0xF0;
-        let value = byte & 0x0F;
-        match register {
-            0x20 => self.osc = value,
-            0x80 => self.dis = value,
-            0xA0 => self.ris = value,
-            0xE0 => self.dim = value,
-            _ => panic!("invalid register"),
-        }
+        self.write_bytes(da, &[byte]);
     }
 
     fn read_register_as_byte(&mut self, da: u8, _dr: u8) -> u8 {
@@ -90,16 +95,6 @@ impl i2c_devices::I2cBusDevice for VirtualHt16K33 {
         validate_device_address(da);
 
         panic!("function not implemented")
-        // for x in values.iter() {
-        //     let dr = x[0];
-        //     let dv = x[1];
-
-        //     if self.registers[dr as usize].1 {
-        //         self.registers[dr as usize].0 = dv;
-        //     } else {
-        //         panic!("attempted write to read-only register {dr:#02X}")
-        //     }
-        // }
     }
 
     // some hardware functions require a little time to pass

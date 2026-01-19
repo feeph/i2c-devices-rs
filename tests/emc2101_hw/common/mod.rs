@@ -16,10 +16,22 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         panic!("function not implemented")
     }
 
-    fn write_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8; N]) -> bool {
+    fn write_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8; N]) -> bool {
         validate_device_address(da);
 
-        panic!("function not implemented")
+        if bytes.len() == 2 {
+            let dr = bytes[0]; // device register
+            let rv = bytes[1]; // register value
+            if self.registers[dr as usize].1 {
+                self.registers[dr as usize].0 = rv;
+                true
+            } else {
+                panic!("attempted write to read-only register {dr:#02X}")
+            }
+        } else {
+            // too many bytes (expect exactly 2 for all EMC2101 writes)
+            false
+        }
     }
 
     // --------------------------------------------------------------------
@@ -45,13 +57,7 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
     }
 
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {
-        validate_device_address(da);
-
-        if self.registers[dr as usize].1 {
-            self.registers[dr as usize].0 = byte;
-        } else {
-            panic!("attempted write to read-only register {dr:#02X}")
-        }
+        self.write_bytes(da, &[dr, byte]);
     }
 
     fn read_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, dr: [u8; N]) -> [u8; N] {
@@ -68,17 +74,8 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
     }
 
     fn write_multibyte_register_as_u8<const N: usize>(&mut self, da: u8, values: [[u8; 2]; N]) {
-        validate_device_address(da);
-
-        for x in values.iter() {
-            let dr = x[0];
-            let dv = x[1];
-
-            if self.registers[dr as usize].1 {
-                self.registers[dr as usize].0 = dv;
-            } else {
-                panic!("attempted write to read-only register {dr:#02X}")
-            }
+        for bytes in values.iter() {
+            self.write_bytes(da, bytes);
         }
     }
 
