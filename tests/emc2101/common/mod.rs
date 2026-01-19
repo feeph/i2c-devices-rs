@@ -34,10 +34,18 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
         }
     }
 
-    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8]) -> Option<[u8; N]> {
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8]) -> Option<[u8; N]> {
         validate_device_address(da);
 
-        panic!("read_byte(): function not implemented")
+        // always 1 byte for EMC2101 / EMC2101-R
+        if bytes.len() == 1 {
+            let dr = bytes[0];
+            let mut result = [0x00; N];
+            result[0] = self.registers[dr as usize].0;
+            Some(result)
+        } else {
+            panic!("write_and_read_bytes(): must write exactly one byte")
+        }
     }
 
     // --------------------------------------------------------------------
@@ -51,9 +59,7 @@ impl i2c_devices::I2cBusDevice for VirtualI2cBusDevice {
     }
 
     fn read_register_as_byte(&mut self, da: u8, dr: u8) -> u8 {
-        validate_device_address(da);
-
-        self.registers[dr as usize].0
+        self.write_and_read_bytes::<1>(da, &[dr]).unwrap()[0]
     }
 
     fn write_register_as_byte(&mut self, da: u8, dr: u8, byte: u8) {

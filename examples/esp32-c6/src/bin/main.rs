@@ -251,10 +251,14 @@ impl<'a, Dm: esp_hal::DriverMode> i2c_devices::I2cBusDevice for I2cBusDevice<'a,
         }
     }
 
-    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, _bytes: &[u8]) -> Option<[u8; N]> {
-        validate_device_address(da);
+    fn write_and_read_bytes<const N: usize>(&mut self, da: u8, bytes: &[u8]) -> Option<[u8; N]> {
+        let mut rb = [0u8; N];
 
-        panic!("read_byte(): function not implemented")
+        // TODO add error handling for read_register_as_u8()
+        let _ = self.i2c_bus.write_read(da, bytes, &mut rb);
+
+        // implicit return
+        Some(rb)
     }
 
     // --------------------------------------------------------------------
