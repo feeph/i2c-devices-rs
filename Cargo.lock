@@ -43,9 +43,9 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "numtoa"
-version = "0.3.1"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a6da8d50bd4f4b2e9788c44714a3fa4e465d33fd6a6ad70991db6eb30807dca"
+checksum = "9e4d8a81ede501fad07191e746a299f4d79f6dcd053bab1b97af4ff5a90099f2"
 
 [[package]]
 name = "ppv-lite86"
