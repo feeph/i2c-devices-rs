@@ -9,7 +9,7 @@ numtoa = "0.3.1"
 
 [dev-dependencies]
 log = "0.4.29"
-rand = "0.9.2"
+rand = "0.10.1"
 
 # features
 
